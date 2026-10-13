@@ -47,10 +47,10 @@ async function getView(page) {
 try {
   const host = await pageFor();
   await open(host, base);
-  await host.getByRole('heading', { name: /길은 사라져도/ }).waitFor();
+  await host.getByRole('heading', { name: /기억을 믿고/ }).waitFor();
   await host.evaluate(() => document.fonts.ready);
   await host.screenshot({ path: new URL('home-desktop.png', shots).pathname, fullPage: true });
-  await host.getByLabel('탐험가 이름').fill('테스터1');
+  await host.getByLabel('플레이어 이름').fill('테스터1');
   await host.getByRole('button', { name: '방 만들기', exact: true }).click();
   await host.locator('.lobby').waitFor();
   const { code } = await membership(host);
@@ -58,7 +58,7 @@ try {
   for (let i = 1; i < 6; i++) {
     const page = await pageFor();
     await open(page, `${base}/?room=${code}`);
-    await page.getByLabel('탐험가 이름').fill(`테스터${i + 1}`);
+    await page.getByLabel('플레이어 이름').fill(`테스터${i + 1}`);
     await page.getByRole('button', { name: '입장하기', exact: true }).click();
     await page.locator('.lobby').waitFor();
     pages.push(page);
@@ -67,7 +67,7 @@ try {
   await host.screenshot({ path: new URL('lobby-desktop.png', shots).pathname, fullPage: true });
   const full = await host.request.post(`${base}/api/rooms/${code}/join`, { data: { name: '일곱번째' } });
   assert.equal(full.status(), 409);
-  await host.getByRole('button', { name: /탐험 시작하기/ }).click();
+  await host.getByRole('button', { name: /게임 시작하기/ }).click();
   for (const page of pages) await page.locator('.stage-placement').waitFor();
   await host.screenshot({ path: new URL('placement-desktop.png', shots).pathname, fullPage: true });
 
@@ -125,7 +125,7 @@ try {
   await open(mobile, base);
   await mobile.evaluate(() => document.fonts.ready);
   await mobile.screenshot({ path: new URL('home-mobile.png', shots).pathname, fullPage: true });
-  await mobile.getByRole('button', { name: /먼저 혼자 둘러볼까요/ }).click();
+  await mobile.getByRole('button', { name: /혼자 연습하기/ }).click();
   await mobile.locator('.stage-placement').waitFor();
   await mobile.getByRole('button', { name: /랜덤 배치/ }).click();
   await mobile.screenshot({ path: new URL('demo-placement-mobile.png', shots).pathname, fullPage: true });

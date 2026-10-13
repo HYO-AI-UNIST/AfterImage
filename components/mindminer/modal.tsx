@@ -10,5 +10,5 @@ export function Modal({ title, children, onClose, className = '' }: {title: stri
     document.body.style.overflow = 'hidden';
     return () => {dialog?.close(); document.body.style.overflow = old;};
   }, []);
-  return <dialog ref={ref} className={`modal ${className}`} onCancel={event => {event.preventDefault(); onClose();}} onClick={event => {if(event.target === event.currentTarget) onClose();}} aria-label={title}><div className="modal-heading"><span className="eyebrow">MINDMINER / FIELD GUIDE</span><button className="icon-button" onClick={onClose} aria-label="닫기"><X size={20}/></button></div><h2>{title}</h2>{children}</dialog>;
+  return <dialog ref={ref} className={`modal ${className}`} onCancel={event => {event.preventDefault(); onClose();}} onClick={event => {if(event.target === event.currentTarget) onClose();}} aria-label={title}><div className="modal-heading"><span className="eyebrow">MindMiner</span><button className="icon-button" onClick={onClose} aria-label="닫기"><X size={20}/></button></div><h2>{title}</h2>{children}</dialog>;
 }
