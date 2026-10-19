@@ -194,6 +194,7 @@ function beginPlacement(original: GameState, starterSeat: number, restart = fals
   return nextState(state, {
     phase: 'placing',
     placementRevision: state.revision + 1,
+    abilityCue: undefined,
     round: restart ? 1 : state.round,
     rotation: 0,
     boardMode: 'choice',
@@ -298,6 +299,7 @@ export function applyAction(original: GameState, playerId: string, action: GameA
       if (!state.rolesEnabled) throw new GameError('이번 라운드는 특수 능력 없이 진행합니다.', 409);
       if (player!.ready) throw new GameError('배치를 완료한 뒤에는 특수 능력을 바꿀 수 없습니다.', 409);
       if (!availableRoles(state.playerCount).includes(action.role)) throw new GameError('이번 게임에서 사용할 수 있는 특수 능력을 선택해주세요.');
+      if (player!.role) throw new GameError('이번 라운드의 능력은 이미 확정했습니다. 다음 라운드에 새로 선택해주세요.', 409);
       return { state: nextState(state, {
         players: state.players.map((participant) => participant.id === playerId ? { ...participant, role: action.role,
           roleRevision: state.revision + 1, memoRevision: state.revision + 1, coins: roundHintCoins(state.hintCoins, action.role), blessings: action.role === 'guardian' ? 2 : 0, peeks: action.role === 'thief' ? 2 : 0, shifts: action.role === 'shifter' ? MAX_MINE_SHIFTS : 0 } : participant),
@@ -483,6 +485,7 @@ export function applyAction(original: GameState, playerId: string, action: GameA
       if ((player!.blessings ?? 0) <= 0) throw new GameError('이번 라운드의 가호를 모두 사용했습니다.', 409);
       return { state: nextState(state, {
         blessingSeat: null, position: null,
+        abilityCue: {id:`${state.round}:${state.revision + 1}:guardian`,role:'guardian',actorSeat:player!.seat,until:now+3000},
         players: state.players.map((participant) => participant.id === playerId ? { ...participant, blessings: (participant.blessings ?? 0) - 1 } : participant),
       }) };
     }
@@ -505,10 +508,11 @@ export function applyAction(original: GameState, playerId: string, action: GameA
         players = players.map((participant) => participant.id === playerId ? { ...participant, shifts: remaining - 1 } : participant);
       }
       const shiftQueue = state.shiftQueue.slice(1);
-      if (state.boardMode === 'choice') return { state: nextState(state, { boards, players, shiftQueue: [] }) };
+      const abilityCue = boards !== state.boards ? {id:`${state.round}:${state.revision + 1}:shifter`,role:'shifter' as const,actorSeat:player!.seat,until:now+3000} : state.abilityCue;
+      if (state.boardMode === 'choice') return { state: nextState(state, { boards, players, shiftQueue: [], abilityCue }) };
       return { state: shiftQueue.length
-        ? nextState(state, { boards, players, shiftQueue })
-        : rotateBoards({ ...state, boards, players }, 1, now) };
+        ? nextState(state, { boards, players, shiftQueue, abilityCue })
+        : rotateBoards({ ...state, boards, players, abilityCue }, 1, now) };
     }
     case 'nextRound': {
       requireHost(state, playerId);
@@ -546,6 +550,7 @@ export function viewFor(original: GameState, playerId: string, now = Date.now())
     hintCoins: state.hintCoins,
     gridSize: state.gridSize,
     rolesEnabled: state.rolesEnabled ?? false,
+    ...(state.abilityCue && state.abilityCue.until > now ? {abilityCue: state.abilityCue} : {}),
     ...(state.scoringMode === 'transfer' ? { scoringMode: state.scoringMode } : {}),
     ...(state.placementMode === 'retained' ? { placementMode: state.placementMode, rebuildSeats: [...(state.rebuildSeats ?? [])] } : {}),
     spectators: state.spectators.map(({ id, name }) => ({ id, name })),

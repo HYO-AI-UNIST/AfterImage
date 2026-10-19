@@ -88,6 +88,7 @@ try {
         if (name === 'desktop' || name === 'landscape') {
             await control(page, 'practice');
             await page.locator('canvas[data-phase="placing"]').waitFor();
+            await control(page, 'role-confirm');
             // Placement and hint selection both work with keyboard edge targets.
             await page.keyboard.press('ArrowRight'); await page.keyboard.press('Enter');
             await control(page, 'clear'); await control(page, 'ready');

@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { getBoard, canRebuildBoard } from '../game';
+import { getBoard, canRebuildBoard, hasSafePath } from '../game';
 import type { RoomView } from '../contracts';
 import { boardPosition } from './board-layout';
 import { MineExplosion } from './explosion';
 import { AmbientDust } from './ambient-dust';
+import { HintScan } from './hint-scan';
 const ease = (t: number) => t * t * (3 - 2 * t);
 export class MineWorld {
     renderer: THREE.WebGLRenderer;
@@ -23,6 +24,11 @@ export class MineWorld {
     private scenery = new THREE.Group();
     private trackRoot = new THREE.Group();
     private memoRoot = new THREE.Group();
+    private transferRoot = new THREE.Group();
+    private transferMarks = new Map<string,{root:THREE.Group;material:THREE.MeshBasicMaterial;dots:THREE.Mesh[];length:number}>();
+    private transferValid = new Set<string>();
+    private transferFrom: string | null = null;
+    private transferTo: string | null = null;
     private gridSize = 4;
     private get geometry() { return getBoard(this.gridSize); }
     private position(id: string) { const [x, z] = boardPosition(id, this.gridSize); return new THREE.Vector3(x, 0, z); }
@@ -48,6 +54,8 @@ export class MineWorld {
     private blastLight = new THREE.PointLight(0xffe2b5, 0, 12, 2);
     private flash: THREE.Sprite;
     private hintLines = new Map<string, THREE.Mesh>();
+    private hintHover = new THREE.Group();
+    private hintHalo: THREE.Mesh<THREE.PlaneGeometry,THREE.MeshBasicMaterial>;
     private keyLight: THREE.DirectionalLight;
     private stageLight = new THREE.SpotLight(0xc8d5e0, 1250, 42, .60, .48, 2);
     private stageBeam: THREE.Mesh | null = null;
@@ -68,6 +76,10 @@ export class MineWorld {
     private cartModel: THREE.Object3D | null = null;
     private wheels: THREE.Object3D[] = [];
     private uiScene = new THREE.Scene();
+    private curtainScene = new THREE.Scene();
+    private fadeCenter = {value:new THREE.Vector3()};
+    private fadeRange = {value:new THREE.Vector2(10,17)};
+    private fadedMaterials = new WeakSet<THREE.Material>();
     private uiCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 2);
     private uiMaterial: THREE.MeshBasicMaterial;
     private look = new THREE.Vector3();
@@ -79,6 +91,7 @@ export class MineWorld {
     private explosion: MineExplosion;
     private shock: THREE.Mesh;
     private dust: AmbientDust;
+    private survey: HintScan;
     private lastEvent = '';
     private lastRound = '';
     private view: RoomView | null = null;
@@ -104,12 +117,14 @@ export class MineWorld {
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         this.renderer.autoClear = false;
-        this.scene.background = new THREE.Color(0x050709);
-        this.scene.fog = new THREE.FogExp2(0x050709, .014);
+        this.scene.background = new THREE.Color(0x000000);
+        this.scene.fog = new THREE.FogExp2(0x000000, .018);
         this.scene.add(this.board);
         this.scene.add(this.menu);
         this.menu.visible = false;
-        this.board.add(this.scenery, this.trackRoot, this.memoRoot);
+        this.board.add(this.scenery, this.trackRoot, this.memoRoot, this.transferRoot);
+        this.survey = new HintScan(this.reduce);
+        this.board.add(this.survey.root);
         this.scene.add(new THREE.HemisphereLight(0xa3b3c1, 0x07090b, .48));
         const key = new THREE.DirectionalLight(0x9cabb6, .62);
         key.position.set(-8, 20, 10);
@@ -138,6 +153,8 @@ export class MineWorld {
         this.cart.add(this.cartLamp);
         const loader = new THREE.TextureLoader();
         const hazardTexture = loader.load('/game/fx/glow.png'); this.textures.add(hazardTexture); this.hazardTexture = hazardTexture;
+        this.hintHalo=new THREE.Mesh(new THREE.PlaneGeometry(1.7,1),new THREE.MeshBasicMaterial({map:hazardTexture,color:0xdbf6ff,transparent:true,opacity:.62,depthWrite:false,toneMapped:false,blending:THREE.AdditiveBlending}));
+        this.hintHalo.rotation.x=-Math.PI/2;this.hintHalo.position.y=.37;this.hintHover.add(this.hintHalo);this.hintHover.visible=false;this.board.add(this.hintHover);
         this.cartHalo = this.mesh(new THREE.PlaneGeometry(4.6, 4.6), new THREE.MeshBasicMaterial({map: hazardTexture, color: 0xc4dbe6, transparent: true, opacity: .42, depthWrite: false, blending: THREE.AdditiveBlending}), [0, .03, 0], this.board);
         this.cartHalo.rotation.x = -Math.PI / 2;
         this.resultStage.position.copy(this.position('0-0'));
@@ -164,6 +181,14 @@ export class MineWorld {
         const ui = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), this.uiMaterial);
         ui.position.z = -1;
         this.uiScene.add(ui);
+        // Multiply the rendered world into real black before composing the HUD.
+        // Exact zero at the perimeter prevents a lifted-black monitor exposing a
+        // tinted scene rectangle against a different page background.
+        const curtain = new THREE.Mesh(new THREE.PlaneGeometry(2,2),new THREE.ShaderMaterial({
+            transparent:true,depthWrite:false,depthTest:false,toneMapped:false,
+            vertexShader:'varying vec2 screenUv; void main(){ screenUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }',
+            fragmentShader:'varying vec2 screenUv; void main(){ vec2 p=abs(screenUv-.5)*2.; float edge=max(p.x,p.y); float oval=length((screenUv-vec2(.5,.51))*vec2(1.75,1.35)); float fade=max(smoothstep(.51,.94,oval),smoothstep(.74,.985,edge)); gl_FragColor=vec4(0.,0.,0.,fade); }',
+        }));curtain.position.z=-1;this.curtainScene.add(curtain);
         this.camera.position.set(4, 27, 18);
         this.camera.lookAt(0, 0, 0);
         this.ready = this.loadModels();
@@ -210,10 +235,19 @@ export class MineWorld {
             mark.visible = false; this.concealMarks.set(edge.id, mark);
             hazard.visible = false;
             this.trackRoot.add(hazard); this.mines.set(edge.id, hazard);
-            const strip = this.mesh(new THREE.BoxGeometry(.11, .04, a.distanceTo(b)), new THREE.MeshBasicMaterial({ color: 0xb4cedd, transparent: true, opacity: .8 }), [mid.x, .29, mid.z]);
+            const strip = this.mesh(new THREE.BoxGeometry(.11, .04, a.distanceTo(b)), new THREE.MeshBasicMaterial({ color: 0xb4cedd, transparent: true, opacity: .8, toneMapped:false }), [mid.x, .29, mid.z]);
             strip.rotation.y = Math.atan2(b.x - a.x, b.z - a.z);
             strip.visible = false;
             this.hintLines.set(edge.id, strip);
+            if(!edge.base){
+                const root=new THREE.Group();root.position.copy(mid);root.rotation.y=hazard.rotation.y;root.visible=false;this.transferRoot.add(root);
+                const material=new THREE.MeshBasicMaterial({color:0xffae79,transparent:true,opacity:.8,depthWrite:false,toneMapped:false,blending:THREE.AdditiveBlending});
+                const length=a.distanceTo(b);
+                this.mesh(new THREE.BoxGeometry(.20,.025,length*.67),material,[0,.45,0],root);
+                const dots:THREE.Mesh[]=[];
+                for(let i=0;i<3;i++)dots.push(this.mesh(new THREE.OctahedronGeometry(.12),material,[0,.61,(i-1)*length*.22],root));
+                this.transferMarks.set(edge.id,{root,material,dots,length});
+            }
         }
         this.buildingTracks = false;
     }
@@ -237,10 +271,30 @@ export class MineWorld {
             }
         });
         this.trackRoot.clear(); this.rings.clear(); this.mines.clear(); this.hintLines.clear(); this.concealMarks.clear(); this.dangerSparks.clear();
+        this.transferRoot.clear();this.transferMarks.clear();this.transferValid.clear();
         this.platformPools = []; this.projected.clear(); this.gridSize = gridSize;
         this.activeLevel?.removeFromParent(); this.activeLevel = this.levels.get(gridSize) ?? null;
         if (this.activeLevel) this.scenery.add(this.activeLevel);
-        this.buildTracks(); this.buildBoardDetails(); this.refreshTables(); this.memoKey = '';
+        this.buildTracks(); this.buildBoardDetails(); this.refreshTables(); this.applyWorldFade(); this.memoKey = '';
+    }
+    private applyWorldFade() {
+        this.scene.traverse(object=>{
+            if(!(object instanceof THREE.Mesh))return;
+            for(const material of Array.isArray(object.material)?object.material:[object.material]){
+                if(!(material instanceof THREE.MeshStandardMaterial||material instanceof THREE.MeshBasicMaterial)||this.fadedMaterials.has(material))continue;
+                this.fadedMaterials.add(material);
+                const previous=material.onBeforeCompile;
+                material.onBeforeCompile=(shader,renderer)=>{
+                    previous.call(material,shader,renderer);
+                    shader.uniforms.mineFadeCenter=this.fadeCenter;shader.uniforms.mineFadeRange=this.fadeRange;
+                    shader.vertexShader='varying vec3 mineWorldPosition;\n'+shader.vertexShader;
+                    shader.vertexShader=shader.vertexShader.replace('#include <worldpos_vertex>','#include <worldpos_vertex>\nvec4 mineLocal=vec4(transformed,1.);\n#ifdef USE_INSTANCING\nmineLocal=instanceMatrix*mineLocal;\n#endif\nmineWorldPosition=(modelMatrix*mineLocal).xyz;');
+                    shader.fragmentShader='varying vec3 mineWorldPosition; uniform vec3 mineFadeCenter; uniform vec2 mineFadeRange;\n'+shader.fragmentShader;
+                    shader.fragmentShader=shader.fragmentShader.replace('#include <dithering_fragment>','#include <dithering_fragment>\nfloat mineDistance=length((mineWorldPosition.xz-mineFadeCenter.xz)*vec2(1.,.9));\ngl_FragColor.rgb*=1.-smoothstep(mineFadeRange.x,mineFadeRange.y,mineDistance);');
+                };
+                material.customProgramCacheKey=()=> 'mine-world-feather-v1';material.needsUpdate=true;
+            }
+        });
     }
     private updateMemos(view: RoomView | null) {
         const owner = view?.players[view.boardOwnerSeat];
@@ -397,6 +451,7 @@ export class MineWorld {
             o.receiveShadow = true;
         } });
         this.refreshTables();
+        this.applyWorldFade();
     }
     private tablePosition(seat: number) { const angle = Math.max(0, seat) * Math.PI * 2 / (this.view?.playerCount ?? 6); return new THREE.Vector3(Math.sin(angle) * 43, 0, Math.cos(angle) * 43 - 43); }
     get cinematic() {
@@ -409,6 +464,24 @@ export class MineWorld {
         this.width = w; this.height = h;
         this.renderer.setPixelRatio(Math.min(devicePixelRatio, w < 700 ? 1.7 : 2));
         this.renderer.setSize(w, h, false); this.projectionReset = true;
+    }
+    setSurvey(edgeId: string | null, at: number, mined: boolean | null = false) {
+        const edge = this.geometry.edges.find(e => e.id === edgeId);
+        this.survey.set(edge ? this.position(edge.a).add(this.position(edge.b)).multiplyScalar(.5) : null, at, mined);
+    }
+    setTransfer(from:string|null,to:string|null){
+        this.transferFrom=from;this.transferTo=to;this.transferValid.clear();
+        if(!from||!this.view)return;
+        const mines=this.view.shiftMines??[];
+        for(const edge of this.geometry.edges)if(!edge.base&&!mines.includes(edge.id)&&hasSafePath(mines.map(id=>id===from?edge.id:id),this.gridSize))this.transferValid.add(edge.id);
+    }
+    canTransferTo(id:string){return this.transferValid.has(id);}
+    surveyAnchor() {
+        if (!this.survey.root.visible) return null;
+        const p = this.survey.root.position.clone().add(this.center);
+        p.y += 1.3 * this.survey.root.scale.y;
+        p.project(this.camera);
+        return {x:(p.x*.5+.5)*this.width,y:(-.5*p.y+.5)*this.height};
     }
     setState(view: RoomView | null, draft: string[], hintMode: boolean, selected: string | null, concealed: string[] = []) {
         if (!view) { this.lastEvent = ''; this.lastRound = ''; }
@@ -479,16 +552,17 @@ export class MineWorld {
     resetCamera() { this.flightAt = Number.NEGATIVE_INFINITY; }
     hoverAt(id: string | null) { this.hover = id; }
     available() {
-        if (this.inputLocked || !this.view || this.view.phase !== 'playing' || this.view.players[this.view.activeSeat]?.id !== this.view.selfId || this.view.event || this.hintMode || this.view.boardOwnerSeat < 0 || this.view.blessingSeat !== undefined || this.view.shiftSeat !== undefined)
+        if (this.inputLocked || this.survey.root.visible || !this.view || this.view.phase !== 'playing' || this.view.players[this.view.activeSeat]?.id !== this.view.selfId || this.view.event || this.hintMode || this.view.boardOwnerSeat < 0 || this.view.blessingSeat !== undefined || this.view.shiftSeat !== undefined)
             return [];
         return this.view.position ? this.geometry.edges.filter(e => e.a === this.view!.position || e.b === this.view!.position).map(e => e.a === this.view!.position ? e.b : e.a) : this.geometry.starts;
     }
     keyboardTargets() {
         if (this.inputLocked || !this.view || this.view.event) return [];
+        if(this.view.phase==='placing'&&this.view.rolesEnabled&&!this.view.players.find(p=>p.id===this.view!.selfId)?.role)return [];
         if (this.view.phase === 'placing' && canRebuildBoard(this.view, this.view.players.find(p => p.id === this.view!.selfId)?.seat ?? -1) && !this.view.players.find(p => p.id === this.view!.selfId)?.ready
             || this.view.shiftSeat !== undefined && this.view.players[this.view.shiftSeat]?.id === this.view.selfId
             || this.view.phase === 'playing' && this.hintMode && this.view.players[this.view.activeSeat]?.id === this.view.selfId)
-            return this.geometry.edges.filter(edge => !edge.base).map(edge => edge.id);
+            return this.geometry.edges.filter(edge => !edge.base&&(!this.transferFrom||this.transferValid.has(edge.id)||this.view?.shiftMines?.includes(edge.id))).map(edge => edge.id);
         return this.available();
     }
     project(id: string) { return this.projected.get(id); }
@@ -502,6 +576,7 @@ export class MineWorld {
     }
     pick(x: number, y: number, edges = false): string | null {
         if (this.inputLocked) return null;
+        if(this.view?.phase==='placing'&&!canRebuildBoard(this.view,this.view.players.find(p=>p.id===this.view!.selfId)?.seat??-1))return null;
         const tolerance = innerWidth < 700 ? 37 : 31;
         if (!edges) {
             let best: string | null = null, dist = tolerance;
@@ -519,6 +594,7 @@ export class MineWorld {
         }
         let best: string | null = null, dist = innerWidth < 700 ? 19 : 13;
         for (const e of this.geometry.edges.filter(e => !e.base)) {
+            if(this.transferFrom&&!this.transferValid.has(e.id)&&!this.view?.shiftMines?.includes(e.id))continue;
             const a = this.projected.get(e.a), b = this.projected.get(e.b);
             if (!a || !b)
                 continue;
@@ -597,6 +673,9 @@ export class MineWorld {
             yaw -= blast * .12;
         }
         this.look.lerp(target, this.reduce ? 1 : 1 - Math.exp(-cameraDt * (blast > 0 ? 15 : flight ? 9 : 3.5)));
+        this.fadeCenter.value.copy(this.look);
+        const spread=flight?Math.sin(flight.progress*Math.PI):0;
+        this.fadeRange.value.set(home?5.2:10+spread*55,home?9.2:17+spread*70);
         const desired = new THREE.Vector3(this.look.x + Math.sin(yaw) * 19, (home ? 26 : result ? 21 : 27) - blast * 6, this.look.z + Math.cos(yaw) * 19);
         this.camera.position.lerp(desired, this.reduce ? 1 : 1 - Math.exp(-cameraDt * (blast > 0 ? 13 : 6)));
         this.shake *= Math.exp(-Math.min(elapsed, 1000) / 1000 * 7);
@@ -612,13 +691,35 @@ export class MineWorld {
         this.camera.bottom = -this.camera.top;
         this.camera.updateProjectionMatrix();
         const allowed = this.available();
-        for (const [id, line] of this.hintLines) line.visible = this.selected === id || (view?.phase === 'placing' || this.hintMode) && id === this.hover;
+        for (const [id, line] of this.hintLines){
+            const investigating=this.hintMode&&id===this.hover;
+            line.visible = this.selected === id || (view?.phase === 'placing' || this.hintMode) && id === this.hover;
+            const material=line.material as THREE.MeshBasicMaterial;
+            material.color.setHex(investigating?0xf0fbff:0xb4cedd);
+            material.opacity=investigating?1:.8;line.scale.x=investigating?3.6:1;
+        }
+        const hoverEdge=this.hintMode?this.geometry.edges.find(edge=>edge.id===this.hover&&!edge.base):undefined;
+        this.hintHover.visible=!!hoverEdge;
+        if(hoverEdge){
+            const a=this.position(hoverEdge.a),b=this.position(hoverEdge.b);
+            this.hintHover.position.copy(a).add(b).multiplyScalar(.5);this.hintHover.rotation.y=Math.atan2(b.x-a.x,b.z-a.z);
+            this.hintHalo.scale.y=a.distanceTo(b)*1.3;this.hintHalo.material.opacity=this.reduce ? .6 : .5+Math.sin(t*4)*.12;
+        }
+        for(const [id,mark]of this.transferMarks){
+            const source=id===this.transferFrom,selected=id===this.transferTo;
+            mark.root.visible=source||this.transferValid.has(id);
+            if(!mark.root.visible)continue;
+            mark.material.color.setHex(source?0xffffff:selected?0xfff1c7:0xff9254);
+            mark.material.opacity=source||selected ? .95 : this.reduce ? .75 : .38+(Math.sin(t*5)*.5+.5)*.55;
+            mark.root.scale.x=id===this.hover||selected?1.55:1;
+            mark.dots.forEach((dot,i)=>{dot.position.z=this.reduce?(i-1)*mark.length*.22:((t*.55+i/3)%1-.5)*mark.length*.65;dot.position.y=.62+(this.reduce?0:Math.sin(t*4+i)*.08);});
+        }
         for (const [id, r] of this.rings) {
             r.visible = allowed.includes(id);
             r.scale.setScalar(1 + (id === this.hover ? .22 : this.reduce ? 0 : Math.sin(t * 5) * .09));
             (r.material as THREE.MeshBasicMaterial).color.setHex(id === this.hover ? 0xded8bc : 0xc9e0ed);
         }
-        this.board.visible = !home && (view?.phase === 'playing' ? view.boardOwnerSeat >= 0 || view.shiftSeat !== undefined && view.players[view.shiftSeat]?.id === view.selfId : view?.phase === 'placing' ? canRebuildBoard(view, view.players.find(p => p.id === view.selfId)?.seat ?? -1) : view?.phase !== 'waiting'); this.menu.visible = home; this.resultStage.visible = result;
+        this.board.visible = !home && (view?.phase === 'playing' ? view.boardOwnerSeat >= 0 || view.shiftSeat !== undefined && view.players[view.shiftSeat]?.id === view.selfId : view?.phase === 'placing' ? view.players.some(p=>p.id===view.selfId) : view?.phase !== 'waiting'); this.menu.visible = home; this.resultStage.visible = result;
         if (home) this.animateMenu(t);
         if (view?.phase === 'playing') {
             const event = view.event;
@@ -680,6 +781,8 @@ export class MineWorld {
         this.shock.scale.setScalar(1 + Math.min(this.burstAge, 1.8) * 4);
         (this.shock.material as THREE.MeshBasicMaterial).opacity = Math.max(0, .48 - this.burstAge * .9);
         this.camera.updateMatrixWorld();
+        this.survey.root.scale.setScalar(Math.max(1, 56 * (this.camera.right-this.camera.left) / (this.width * 1.5)));
+        this.survey.update(time);
         for (const n of this.geometry.nodes) {
             const p = this.position(n.id);
             p.y = .34;
@@ -692,6 +795,7 @@ export class MineWorld {
         this.renderer.clear();
         this.renderer.render(this.scene, this.camera);
         this.renderer.clearDepth();
+        this.renderer.render(this.curtainScene, this.uiCamera);
         this.renderer.render(this.uiScene, this.uiCamera);
     }
     private animateMenu(t: number) {
@@ -725,6 +829,7 @@ export class MineWorld {
         this.scene.traverse(release);
         for (const level of this.levels.values()) level.traverse(release);
         this.uiScene.traverse(release);
+        this.curtainScene.traverse(release);
         for (const g of this.geometries)
             g.dispose();
         for (const m of this.materials)

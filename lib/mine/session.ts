@@ -21,6 +21,7 @@ export class MineSession {
     private generation = 0;
     private timer: ReturnType<typeof setTimeout> | null = null;
     private disposed = false;
+    private idleWaiters = new Set<() => void>();
     private request: AbortController | null = null;
     constructor() {
         try {
@@ -34,6 +35,8 @@ export class MineSession {
     get self() { return this.view?.players.find(p => p.id === this.view?.selfId); }
     get host() { return !!this.view && this.view.selfId === this.view.hostId; }
     get blocked() { const v = this.view; return this.busy || !!this.connection || !!v?.event; }
+    whenIdle():Promise<void>{return this.busy?new Promise(resolve=>this.idleWaiters.add(resolve)):Promise.resolve();}
+    private releaseIdle(){for(const resolve of this.idleWaiters)resolve();this.idleWaiters.clear();}
     private emit() { if (!this.disposed)
         this.onChange(); }
     private accept(view: RoomView) { if (this.view?.code === view.code && this.view.revision > view.revision)
@@ -45,7 +48,7 @@ export class MineSession {
         this.clearTimer();
         this.member = null;
         this.demo = true;
-        this.busy = false;
+        this.busy = false; this.releaseIdle();
         this.error = '';
         this.connection = '';
         this.state = createDemo();
@@ -98,7 +101,7 @@ export class MineSession {
         }
         finally {
             if (g === this.generation) {
-                this.busy = false;
+                this.busy = false; this.releaseIdle();
                 this.emit();
             }
         }
@@ -188,11 +191,11 @@ export class MineSession {
         }
         finally {
             if (g === this.generation) {
-                this.busy = false;
+                this.busy = false; this.releaseIdle();
                 this.emit();
             }
         }
     }
-    leave() { this.generation++; this.clearTimer(); this.member = null; this.view = null; this.demo = false; this.state = null; this.busy = false; this.restoring = false; this.error = ''; this.connection = ''; this.emit(); }
-    dispose() { this.disposed = true; this.generation++; this.clearTimer(); }
+    leave() { this.generation++; this.clearTimer(); this.member = null; this.view = null; this.demo = false; this.state = null; this.busy = false; this.releaseIdle(); this.restoring = false; this.error = ''; this.connection = ''; this.emit(); }
+    dispose() { this.disposed = true; this.generation++; this.clearTimer(); this.busy=false;this.view=null;this.releaseIdle(); }
 }

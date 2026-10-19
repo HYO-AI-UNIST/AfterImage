@@ -1,11 +1,12 @@
 import * as THREE from 'three';
-import { getBoard } from '../game';
 import type { PrivateResult } from '../contracts';
 import type { MineSession } from './session';
-import { boardPosition } from './board-layout';
-import type { RuleUi } from './rule-ui';
+import { ownShift, type RuleUi } from './rule-ui';
 import { ruleGame, ruleLobby, ruleOverlay, transferResults, RULE_OVERLAYS } from './rule-hud';
 import { GUIDE_PAGES, guidePage } from './guide';
+import { drawAbilityEffect, drawHintInstrument } from './presentation';
+import { ROLE_DETAILS } from '../roles';
+import { UI_ATLAS_VERSION } from './ui-atlas-version';
 export type Overlay = 'entry' | 'help' | 'pause' | 'leave' | 'hint' | 'assets' | 'roles' | 'memos' | 'peek' | 'peek-result' | 'settings' | 'roster' | 'reveal' | null;
 export interface HudModel {
     session: MineSession;
@@ -16,6 +17,7 @@ export interface HudModel {
     name: string;
     code: string;
     field: string | null;
+    selection?: {start:number;end:number};
     hint: PrivateResult | null;
     toast: string;
     loading: boolean;
@@ -39,6 +41,7 @@ export interface HitRegion {
     h: number;
     disabled: boolean;
     label: string;
+    iconOnly?: boolean;
 }
 type Frame = {
     x: number;
@@ -55,6 +58,7 @@ export class MineHud {
     width = 1;
     height = 1;
     guideScrollMax = 0;
+    memoMap: {x:number;y:number;w:number;h:number;points:Array<{id:string;x:number;y:number}>;edges:Array<{id:string;a:string;b:string}>} | null = null;
     ready: Promise<void>;
     private image = new Image();
     private frames: Record<string, Frame> = {};
@@ -62,6 +66,8 @@ export class MineHud {
     private guideImages: HTMLImageElement[] = [];
     private model: HudModel | null = null;
     private dpr = 1;
+    private patterns = new Map<string, CanvasPattern>();
+    private inkImages = new Map<string, HTMLCanvasElement>();
     constructor() {
         this.texture.colorSpace = THREE.SRGBColorSpace;
         this.texture.minFilter = THREE.LinearFilter;
@@ -72,8 +78,8 @@ export class MineHud {
             image.onload = () => resolve(); image.onerror = () => reject(new Error('안내서 그림을 불러올 수 없습니다.'));
             image.src = `/game/guide/${page.id}.png`;
         })));
-        this.ready = Promise.all([guideReady, fetch('/game/ui/atlas.json').then(r => { if (!r.ok)
-                throw new Error('UI 이미지 정보를 불러올 수 없습니다.'); return r.json() as Promise<Record<string, Frame>>; }).then(f => this.frames = f), new Promise<void>((resolve, reject) => { this.image.onload = () => resolve(); this.image.onerror = () => reject(new Error('UI 이미지를 불러올 수 없습니다.')); this.image.src = '/game/ui/atlas.png'; }), document.fonts.load('500 16px Pretendard')]).then(() => { this.loaded = true; });
+        this.ready = Promise.all([guideReady, fetch(`/game/ui/atlas.json?v=${UI_ATLAS_VERSION}`).then(r => { if (!r.ok)
+                throw new Error('UI 이미지 정보를 불러올 수 없습니다.'); return r.json() as Promise<Record<string, Frame>>; }).then(f => this.frames = f), new Promise<void>((resolve, reject) => { this.image.onload = () => resolve(); this.image.onerror = () => reject(new Error('UI 이미지를 불러올 수 없습니다.')); this.image.src = `/game/ui/atlas.png?v=${UI_ATLAS_VERSION}`; }), document.fonts.load('500 16px Pretendard')]).then(() => { this.loaded = true; });
     }
     resize(w: number, h: number) {
         this.width = w; this.height = h; this.dpr = Math.min(devicePixelRatio, 1.5);
@@ -87,6 +93,17 @@ export class MineHud {
         }
     }
     hit(x: number, y: number) { return [...this.regions].reverse().find(r => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h); }
+    memoPick(x:number,y:number,from:string|null): {edge?:string;node?:string}|null {
+        const map=this.memoMap;if(!map||x<map.x||x>map.x+map.w||y<map.y||y>map.y+map.h)return null;
+        const closest=[...map.points].sort((a,b)=>Math.hypot(a.x-x,a.y-y)-Math.hypot(b.x-x,b.y-y))[0];
+        if(closest&&Math.hypot(closest.x-x,closest.y-y)<20){
+            const connection=from&&map.edges.find(e=>(e.a===from&&e.b===closest.id)||(e.b===from&&e.a===closest.id));
+            return connection?{edge:connection.id}:{node:closest.id};
+        }
+        let edge:string|undefined,distance=22;
+        for(const e of map.edges){const a=map.points.find(p=>p.id===e.a)!,b=map.points.find(p=>p.id===e.b)!,dx=b.x-a.x,dy=b.y-a.y,t=Math.max(0,Math.min(1,((x-a.x)*dx+(y-a.y)*dy)/(dx*dx+dy*dy))),d=Math.hypot(x-a.x-dx*t,y-a.y-dy*t);if(d<distance){distance=d;edge=e.id;}}
+        return edge?{edge}:{};
+    }
     imageAt(name: string, x: number, y: number, w: number, h: number, alpha = 1) {
         const f = this.frames[name];
         if (!f || !this.loaded)
@@ -101,7 +118,7 @@ export class MineHud {
         const f = this.frames[name];
         if (!f || !this.loaded)
             return;
-        const g = this.context, b = 12, s = 12;
+        const g = this.context, b = Math.min(12, w / 3, h / 3), s = name.startsWith('control-') ? 10 : 12;
         g.save();
         g.globalAlpha = alpha;
         for (let i = 0; i < 3; i++)
@@ -112,6 +129,23 @@ export class MineHud {
                     g.drawImage(this.image, sx, sy, sw, sh, dx, dy, dw, dh);
             }
         g.restore();
+        if (name.startsWith('panel')) this.surface(name === 'panel-private' ? 'texture-paper' : 'texture-metal', x + b, y + b, w - b * 2, h - b * 2, .65 * alpha);
+    }
+    surface(name: string, x: number, y: number, w: number, h: number, alpha = 1) {
+        if (!this.loaded || w <= 0 || h <= 0) return;
+        let pattern = this.patterns.get(name);
+        if (!pattern) {
+            const f = this.frames[name]; if (!f) return;
+            const tile = document.createElement('canvas'); tile.width = f.w; tile.height = f.h;
+            tile.getContext('2d')!.drawImage(this.image, f.x, f.y, f.w, f.h, 0, 0, f.w, f.h);
+            pattern = this.context.createPattern(tile, 'repeat')!; this.patterns.set(name, pattern);
+        }
+        const g = this.context; g.save(); g.globalAlpha = alpha; g.translate(x, y); g.fillStyle = pattern; g.fillRect(0, 0, w, h); g.restore();
+    }
+    private ink(name:string,x:number,y:number,w:number,h:number){
+        let tile=this.inkImages.get(name);
+        if(!tile){const f=this.frames[name];if(!f||!this.loaded)return;tile=document.createElement('canvas');tile.width=f.w;tile.height=f.h;const g=tile.getContext('2d')!;g.drawImage(this.image,f.x,f.y,f.w,f.h,0,0,f.w,f.h);g.globalCompositeOperation='source-in';g.fillStyle=C.coal;g.fillRect(0,0,f.w,f.h);this.inkImages.set(name,tile);}
+        this.context.drawImage(tile,x,y,w,h);
     }
     text(s: string, x: number, y: number, size = 14, color = C.white, weight = 500, align: CanvasTextAlign = 'left', max?: number) {
         const g = this.context;
@@ -145,12 +179,28 @@ export class MineHud {
         const hover = this.model?.hover === id || this.model?.focus === id;
         const pressed = !disabled && this.model?.pressed === id;
         const lift = pressed ? 3 : hover && !disabled ? -2 : 0;
-        this.frame(disabled ? 'button-disabled' : primary ? pressed ? 'button-pressed' : hover ? 'button-hover' : 'button' : pressed ? 'button-quiet-pressed' : hover ? 'button-quiet-hover' : 'button-quiet', x, y + lift, w, h);
-        if (icon)
-            this.imageAt(icon, x + 12, y + lift + (h - 22) / 2, 22, 22, disabled ? .4 : 1);
-        if (label)
-            this.text(label, x + w / 2 + (icon ? 9 : 0), y + lift + h / 2, w < 100 ? 12 : primary ? 15 : 14, disabled ? C.muted : primary ? C.coal : C.white, 700, 'center', w - 20);
+        const state = disabled ? 'disabled' : pressed ? 'pressed' : hover ? 'hover' : 'idle';
+        const socket = !!icon && !label, card = !icon && !label && h > 80;
+        const family = card ? 'card' : h < 43 || w < 120 ? 'compact' : 'action';
+        if (socket) { const size = Math.min(w, h); this.imageAt(`control-socket-${state}`, x + (w-size)/2, y + lift + (h-size)/2, size, size); }
+        else this.frame(`control-${family}${!card && primary ? '-primary' : ''}-${state}`, x, y + lift, w, h);
+        const font = w < 100 ? 12 : primary ? 15 : 14, size = Math.min(28, h - 12);
+        this.context.font = `700 ${font}px Pretendard, sans-serif`;
+        const textW = Math.min(this.context.measureText(label).width, w - (icon ? size + 25 : 24)), groupW = label ? textW + (icon ? size + 8 : 0) : size;
+        const left = x + (w-groupW)/2;
+        if (icon) { if(primary&&!disabled)this.ink(icon,left,y+lift+(h-size)/2,size,size);else this.imageAt(icon, left, y + lift + (h-size)/2, size, size, disabled ? .3 : 1); }
+        if (label) this.text(label, icon ? left+size+8 : x+w/2, y+lift+h/2, font, disabled ? C.muted : primary ? C.coal : C.white, 700, icon ? 'left' : 'center', textW);
         this.regions.push({ id, label: label || icon || id, x, y, w, h, disabled });
+    }
+    iconButton(id: string, label: string, icon: string, x: number, y: number, size = 52, disabled = false, count?: number) {
+        this.button(id, '', x, y, size, size, false, disabled, icon);
+        Object.assign(this.regions[this.regions.length - 1], { label, iconOnly: true });
+        if (count !== undefined) { this.frame('panel-private',x+size-18,y+size-18,23,23); this.text(String(count),x+size-6,y+size-6,11,disabled?C.muted:C.white,700,'center'); }
+    }
+    resource(icon: string, value: number, x: number, y: number, label: string, max?: number) {
+        this.imageAt(icon, x, y, 33, 33); this.text(String(value),x+39,y+16,21,C.white,700);
+        if (max !== undefined) { for(let i=0;i<Math.min(max,12);i++){this.context.fillStyle=i<value?(icon==='hint-charge'?'#edbd6f':'#b7cfe5'):'#354047';this.context.fillRect(x+2+i*6,y+37,4,3);} }
+        this.text(label,x+39,y+34,9,C.muted,500);
     }
     scrim(alpha = .78) { this.context.fillStyle = `rgba(2,4,6,${alpha})`; this.context.fillRect(0, 0, this.width, this.height); }
     panel(title: string, w: number, h: number) {
@@ -170,11 +220,12 @@ export class MineHud {
         g.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
         g.clearRect(0, 0, w, h);
         this.regions = [];
+        this.memoMap = null;
         const mobile = w < 700, v = m.session.view;
         // A raster vignette is part of the canvas HUD, never an HTML overlay.
         const vignette = g.createRadialGradient(w * .54, h * .44, h * .17, w * .5, h * .5, Math.max(w, h) * .7);
-        vignette.addColorStop(0, 'rgba(2,4,6,0)');
-        vignette.addColorStop(1, 'rgba(2,4,6,.66)');
+        vignette.addColorStop(0, 'rgba(0,0,0,0)');
+        vignette.addColorStop(1, 'rgba(0,0,0,.55)');
         g.fillStyle = vignette;
         g.fillRect(0, 0, w, h);
         if (m.loading) {
@@ -188,7 +239,7 @@ export class MineHud {
             this.home(m);
         else {
             if (!m.overlay && !m.cinematic) this.directions(m, time);
-            this.chrome(m, mobile || w < 1000);
+            this.chrome(m, mobile || w < 1000, time);
             if (v.phase === 'waiting')
                 this.lobby(m);
             else if (v.phase === 'roundEnd' || v.phase === 'finished')
@@ -215,6 +266,10 @@ export class MineHud {
         if (m.overlay === 'assets')
             this.assets();
         if (m.overlay && RULE_OVERLAYS.includes(m.overlay)) ruleOverlay(this, m);
+        drawAbilityEffect(this, m, time);
+        if(!m.overlay)this.playerTooltip(m);
+        const tip = this.regions.find(r => r.iconOnly && (r.id === m.hover || r.id === m.focus));
+        if (tip) { const tw=Math.min(this.width-24,Math.max(90,tip.label.length*12+24)),tx=Math.max(12,Math.min(this.width-tw-12,tip.x+tip.w/2-tw/2)),ty=Math.max(8,tip.y-40);this.frame('panel-private',tx,ty,tw,32);this.text(tip.label,tx+tw/2,ty+16,11,C.white,600,'center',tw-16); }
         if (m.session.error || m.session.connection) {
             const msg = m.session.error || m.session.connection, ww = Math.min(w - 32, 630);
             this.frame('panel', (w - ww) / 2, mobile ? 80 : 91, ww, 50);
@@ -285,7 +340,7 @@ export class MineHud {
         }
         g.restore();
     }
-    private chrome(m: HudModel, mobile: boolean) {
+    private chrome(m: HudModel, mobile: boolean, time:number) {
         const w = this.width, v = m.session.view!;
         this.frame('panel', mobile ? 10 : 22, 14, w - (mobile ? 20 : 44), 52);
         this.text('MINDMINER', mobile ? 25 : 42, 40, mobile ? 14 : 18, C.white, 700);
@@ -305,8 +360,10 @@ export class MineHud {
         for (const p of v.players) {
             const x = sx + p.seat * (cw + gap), active = v.phase === 'playing' && p.seat === v.activeSeat, ww = cw - (mobile ? 4 : 0);
             if (active) {
-                this.frame('button', x - 2, sy - 2, ww + 4, mobile ? 64 : 57, 1);
-                this.frame('panel', x, sy, ww, mobile ? 60 : 53);
+                this.frame('panel-active', x, sy, ww, mobile ? 60 : 53);
+                const g=this.context,reduce=matchMedia('(prefers-reduced-motion: reduce)').matches,pulse=reduce?1:.75+.25*Math.sin(time*.004);
+                g.save();g.fillStyle='#ffffff';g.shadowColor='#e1f2ff';g.shadowBlur=12*pulse;
+                const cy=sy-10-(reduce?0:Math.sin(time*.004)*2);g.beginPath();g.moveTo(x+ww/2-9,cy-5);g.lineTo(x+ww/2+9,cy-5);g.lineTo(x+ww/2,cy+4);g.closePath();g.fill();g.restore();
             }
             else
                 this.frame('panel', x, sy, ww, mobile ? 60 : 53, .82);
@@ -319,16 +376,30 @@ export class MineHud {
                 this.text(p.name, x + ww / 2, sy + 48, 9, active ? C.white : C.muted, 600, 'center', ww - 5);
             else {
                 this.text(p.name, x + 48, sy + 17, 12, active ? C.white : C.white, 600, 'left', ww - 51);
-                this.text(v.phase === 'placing' ? (p.ready ? '준비 완료' : '배치 중') : `${p.score} 코인`, x + 48, sy + 36, 10, C.muted, 400, 'left', ww - 51);
+                if(v.phase==='placing')this.text(p.ready?'준비 완료':'배치 중',x+48,sy+36,10,C.muted,400,'left',ww-51);
+                else {this.imageAt('coin-victory',x+46,sy+26,18,18);this.text(String(p.score),x+68,sy+36,12,C.white,700);}
             }
             if (v.phase === 'placing' && p.ready)
                 this.imageAt('check', x + ww - 15, sy + 2, 13, 13);
         }
         const owner = v.players.find(p => p.seat === v.boardOwnerSeat);
-        this.text(v.phase === 'placing' ? '나의 갱도 · 비공개' : owner ? `${owner.name}의 갱도` : '상대 판 선택 대기', w / 2, mobile ? 166 : 163, 12, v.phase === 'placing' ? C.white : C.muted, 500, 'center');
+        this.text(v.phase === 'placing' ? '나의 갱도 · 비공개' : ownShift(v) ? '나의 갱도 · 지뢰 이동' : owner ? `${owner.name}의 갱도` : '상대 판 선택 대기', w / 2, mobile ? 166 : 163, 12, v.phase === 'placing'||ownShift(v) ? C.white : C.muted, 500, 'center');
         this.text(`ROUND ${String(v.round).padStart(2, '0')} / ${String(v.totalRounds).padStart(2, '0')}`, mobile ? 17 : 42, mobile ? 165 : 103, mobile ? 9 : 11, C.muted, 500);
         if (!mobile)
             this.text(v.boardMode === 'choice' ? `차례 ${v.turnNumber ?? 1}` : `전달 ${String(v.rotation).padStart(2, '0')}`, w - 44, 103, 10, C.muted, 500, 'right');
+    }
+    private playerTooltip(m:HudModel){
+        const target=m.hover?.startsWith('player-role:')?m.hover:m.focus?.startsWith('player-role:')?m.focus:null;
+        const region=this.regions.find(r=>r.id===target),player=target?m.session.view?.players.find(p=>p.seat===Number(target.slice(12))):null;
+        if(!region||!player?.role)return;
+        const detail=ROLE_DETAILS[player.role],w=Math.min(340,this.width-32),x=Math.max(16,Math.min(this.width-w-16,region.x+region.w/2-w/2)),y=region.y+region.h+14,g=this.context;
+        g.font='500 12px Pretendard, sans-serif';let lines=1,row='';for(const c of detail.description){if(g.measureText(row+c).width>w-38){lines++;row=c;}else row+=c;}
+        const hh=69+lines*20,tip=Math.max(x+20,Math.min(x+w-20,region.x+region.w/2));
+        const outline=new Path2D();outline.moveTo(x+8,y);outline.lineTo(tip-12,y);outline.lineTo(tip,y-12);outline.lineTo(tip+12,y);outline.lineTo(x+w-8,y);outline.lineTo(x+w,y+8);outline.lineTo(x+w,y+hh-8);outline.lineTo(x+w-8,y+hh);outline.lineTo(x+8,y+hh);outline.lineTo(x,y+hh-8);outline.lineTo(x,y+8);outline.closePath();
+        g.save();g.fillStyle='#1a2327';g.fill(outline);g.clip(outline);this.surface('texture-paper',x,y-12,w,hh+12,.65);g.restore();
+        g.save();g.strokeStyle='#9db5c1';g.lineWidth=2;g.stroke(outline);g.restore();
+        this.imageAt(`role-${player.role}`,x+15,y+13,34,34);this.text(detail.name,x+60,y+29,16,C.white,700,'left',w-76);
+        this.wrap(detail.description,x+19,y+66,w-38,12,C.white,20);
     }
     private game(m: HudModel, mobile: boolean, time: number) { ruleGame(this, m, time); }
     private lobby(m: HudModel) { ruleLobby(this, m); }
@@ -439,7 +510,16 @@ export class MineHud {
         this.button('enter', m.session.busy ? '갱도에 연결 중…' : m.entry === 'create' ? '방 만들기' : '입장하기', x + 24, y + p.h - 108, w - 48, 48, true, m.session.busy || !m.name.trim() || (m.entry === 'join' && m.code.length !== 6));
         this.text(mobile ? '입력란을 누르면 키보드가 열립니다.' : 'Enter 키로도 입장할 수 있습니다.', x + w / 2, y + p.h - 32, 11, C.muted, 400, 'center');
     }
-    private field(id: string, value: string, x: number, y: number, w: number, h: number, focus: boolean) { this.frame(focus ? 'panel-private' : 'panel-light', x, y, w, h); this.text(value + (focus ? ' │' : ''), x + 16, y + h / 2, 16, focus ? C.white : C.muted, 500, 'left', w - 32); this.regions.push({ id: `field:${id}`, label: id === 'name' ? '플레이어 이름' : '방 코드', x, y, w, h, disabled: false }); }
+    private field(id: string, value: string, x: number, y: number, w: number, h: number, focus: boolean) {
+        this.frame(focus ? 'panel-private' : 'panel-light', x, y, w, h);
+        const g=this.context,raw=id==='name'?this.model?.name??'':this.model?.code??'',selection=this.model?.selection;
+        g.save();g.beginPath();g.rect(x+13,y+4,w-26,h-8);g.clip();g.font='500 16px Pretendard, sans-serif';
+        const start=selection?.start??raw.length,end=selection?.end??start,cx=x+16+g.measureText(raw.slice(0,start)).width;
+        if(focus&&start!==end){g.fillStyle='#b5def544';g.fillRect(cx,y+10,g.measureText(raw.slice(start,end)).width,h-20);}
+        g.fillStyle=raw?C.white:C.muted;g.textAlign='left';g.textBaseline='middle';g.fillText(raw||value,x+16,y+h/2);
+        if(focus&&start===end){g.fillStyle=C.white;g.fillRect(cx,y+11,1.5,h-22);}g.restore();
+        this.regions.push({ id: `field:${id}`, label: id === 'name' ? '플레이어 이름' : '방 코드', x, y, w, h, disabled: false });
+    }
     private help(m: HudModel) {
         this.scrim(.87);
         const w = Math.min(this.width - 20, 1060), h = Math.min(this.height - 20, 790);
@@ -513,43 +593,7 @@ export class MineHud {
         this.button('confirm-leave', '홈으로 이동', x + 36 + (w - 60) / 2, y + p.h - 70, (w - 60) / 2, 48, true);
     }
     private hint(m: HudModel) {
-        if (!m.hint)
-            return;
-        this.scrim();
-        const short = this.height < 560 && this.width > 650;
-        const w = Math.min(this.width - 24, short ? 690 : 475), h = Math.min(this.height - 24, 560), x = (this.width - w) / 2, y = (this.height - h) / 2;
-        this.frame('panel', x, y, w, h);
-        this.text('당신만의 단서', x + 25, y + 34, 23, C.white, 700);
-        this.button('close', '', x + w - 56, y + 12, 40, 40, false, false, 'close');
-        const textCenter = x + (short ? w * .27 : w / 2);
-        this.text(m.hint.mined === null ? '기만의 장막 · 코인 1개 사용' : '나에게만 보이는 답', textCenter, y + (short ? 113 : 79), 11, C.muted, 500, 'center');
-        this.text(m.hint.mined === null ? '판독 불가' : m.hint.mined ? '지뢰가 있어요' : '지뢰가 없어요', textCenter, y + (short ? 151 : 115), short ? 23 : 27, m.hint.mined ? C.danger : C.white, 700, 'center');
-        const center = short ? x + w * .75 : x + w / 2, top = y + (short ? 91 : 156);
-        const scale = Math.max(1, Math.min((short ? w * .4 : w - 90) / 14.4, (h - (short ? 218 : 282)) / 12.47));
-        const geometry = getBoard(m.session.view?.gridSize ?? 4);
-        const pts = new Map(geometry.nodes.map(n => { const [px, pz] = boardPosition(n.id, m.session.view?.gridSize ?? 4); return [n.id, { x: center + px * scale, y: top + (pz + 7.2) * scale }]; }));
-        const g = this.context;
-        for (const e of geometry.edges) {
-            const a = pts.get(e.a)!, b = pts.get(e.b)!;
-            g.beginPath();
-            g.moveTo(a.x, a.y);
-            g.lineTo(b.x, b.y);
-            g.lineWidth = e.id === m.hint.edgeId ? 5 : 1.5;
-            g.strokeStyle = e.id === m.hint.edgeId ? (m.hint.mined ? C.danger : C.teal) : '#566873';
-            g.stroke();
-        }
-        for (const p of pts.values()) {
-            g.fillStyle = C.coal;
-            g.strokeStyle = '#9aa5a9';
-            g.lineWidth = 1;
-            g.beginPath();
-            g.arc(p.x, p.y, 4, 0, Math.PI * 2);
-            g.fill();
-            g.stroke();
-        }
-        this.text('밝게 표시된 선로의 위치를 기억하세요.', x + w / 2, y + h - 100, 12, C.white, 500, 'center', w - 40);
-        this.text('닫으면 사라져요. 다시 물으면 코인 −1', x + w / 2, y + h - 78, 11, C.muted, 400, 'center', w - 40);
-        this.button('close', '기억했어요 · 닫기', x + 24, y + h - 58, w - 48, 42, true);
+        drawHintInstrument(this, m);
     }
     private assets() {
         const p = this.panel('QUIET MINE · 에셋 도감', Math.min(this.width - 28, 620), Math.min(this.height - 104, 580)), { x, y, w, h } = p;

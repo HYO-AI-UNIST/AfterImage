@@ -1,6 +1,6 @@
 {
   "name": "MindMiner / Quiet Mine",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "reference": "../concepts/mindminer-semi-retro-v4.png",
   "color": {
     "canvas": "#050709",
@@ -86,7 +86,8 @@
     "desktopTarget": 40,
     "touchTarget": 48,
     "focusOutline": 2,
-    "focusOffset": 3
+    "focusOffset": 3,
+    "memoHitDiameter": 44
   },
   "viewport": {
     "desktop": [
@@ -111,7 +112,12 @@
   },
   "world": {
     "camera": "automatic orthographic; selected opponent table flight and directed explosion shot",
-    "gridSizes": [3, 4, 5, 6],
+    "gridSizes": [
+      3,
+      4,
+      5,
+      6
+    ],
     "defaultGridSize": 4,
     "geometryCountsBelow": "default 4-division map; other sizes use shared board-layout.ts",
     "junctionRows": [
@@ -129,7 +135,8 @@
     "persistentMovementTrails": false,
     "layout": "../../lib/mine/level-layout.json",
     "triangleSilhouette": "equilateral, fixed base; interior offsets under 0.1 units",
-    "lighting": "strong cool spotlight during own mine placement; faint stage and side spotlights during exploration, cart light and luminous movement arrows"
+    "lighting": "strong cool spotlight during own mine placement; faint stage and side spotlights during exploration, cart light and luminous movement arrows",
+    "blackBoundary": "RGB zero background and fog, world material feather + opaque screen edge feather before HUD"
   },
   "semantics": {
     "text": "white for primary and highlighted text; muted gray for supporting and disabled text; dark text on bright buttons; danger color reserved for warnings",
@@ -147,5 +154,19 @@
     "amberHover": "primaryHover",
     "amberPressed": "primaryPressed",
     "privateTeal": "privateHint"
-  }
+  },
+  "skillColors": {
+    "illuminator": "#FFBF52",
+    "guardian": "#53EFC4",
+    "trapper": "#C280FF",
+    "thief": "#EC759C",
+    "shifter": "#FF7850",
+    "recorder": "#7CAFFF"
+  },
+  "uiAssetFamilies": [
+    "action",
+    "compact",
+    "socket",
+    "card"
+  ]
 }

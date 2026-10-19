@@ -77,6 +77,27 @@ def export(name):
     for o in objects:o.parent=root
     objects.clear();return root
 
+def beam(name,a,b,width,depth,mat):
+    from mathutils import Vector
+    mid=(Vector(a)+Vector(b))/2
+    o=box(name,mid,(width,depth,(Vector(b)-Vector(a)).length),mat)
+    o.rotation_euler=(Vector(b)-Vector(a)).to_track_quat('Z','Y').to_euler();return o
+
+def build_broken_track():
+    # Preserve full rail connections; only the upward fracture is shortened.
+    for side in [-1,1]:
+        for end in [-1,1]:
+            pts=[(side*.15,end*1.65,.19),(side*.15,end*.60,.20),(side*.19,end*.32,.29),(side*.23,end*.23,.73)]
+            for a,b in zip(pts,pts[1:]):beam('Curled torn rail',a,b,.075,.10,rim)
+    for y in [-1.15,1.15]:box('Split sleeper',(0,y,.08),(.67,.17,.13),wood)
+    for x in [-.2,.2]:ico('Hot fracture',(x,0,.38),(.07,.13,.13),red)
+    return export('broken-track')
+
+if os.environ.get('MINDMINER_ONLY')=='broken-track':
+    build_broken_track()
+    bpy.ops.wm.save_as_mainfile(filepath=str(SOURCE/'quiet-mine-broken-track.blend'))
+    raise SystemExit(0)
+
 box('Cart floor',(0,0,.48),(1.25,1.65,.15),iron)
 for x in [-.63,.63]:box('Cart side',(x,0,.83),(.09,1.7,.64),iron)
 for y in [-.83,.83]:box('Cart end',(0,y,.83),(1.28,.09,.64),rim)
@@ -150,11 +171,6 @@ slab('Subterranean water',[(-10.8,.5),(-3.2,-6.7),(-.5,-5),(-2.1,1),(4.8,4.6),(3
 for i in range(7):
     ico('Fault rim outcrop',(-11+i*.52,2.8-i*.64,-1.0),(1.1,.8,1.6),rock)
 
-def beam(name,a,b,width,depth,mat):
-    from mathutils import Vector
-    mid=(Vector(a)+Vector(b))/2
-    o=box(name,mid,(width,depth,(Vector(b)-Vector(a)).length),mat)
-    o.rotation_euler=(Vector(b)-Vector(a)).to_track_quat('Z','Y').to_euler();return o
 # Railway ballast is individually laid, with retaining stones along the beds.
 for row in range(GRID+1):
     for col in range(row+1):
@@ -244,14 +260,8 @@ if GRID!=4:
     bpy.ops.wm.save_as_mainfile(filepath=str(SOURCE/f'quiet-mine-level-{GRID}.blend'))
     raise SystemExit(0)
 
-# Four torn rail ends, visibly lifted toward the blast fracture.
-for side in [-1,1]:
-    for end in [-1,1]:
-        pts=[(side*.15,end*1.65,.19),(side*.15,end*.76,.20),(side*.20,end*.40,.44),(side*.28,end*.22,1.22)]
-        for a,b in zip(pts,pts[1:]):beam('Curled torn rail',a,b,.075,.10,rim)
-for y in [-1.15,1.15]:box('Split sleeper',(0,y,.08),(.67,.17,.13),wood)
-for x in [-.2,.2]:ico('Hot fracture',(x,0,.38),(.07,.13,.13),red)
-export('broken-track')
+# Four compact rail fractures; straight ends still meet the graph's track length.
+build_broken_track()
 
 # Separate title-screen diorama: a miniature mine on an industrial exhibition table.
 # This is its own model and scene, independent of the live game board.

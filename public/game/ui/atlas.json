@@ -5,128 +5,134 @@
     "w": 128,
     "h": 96
   },
-  "panel-light": {
+  "panel-active": {
     "x": 132,
     "y": 0,
     "w": 128,
     "h": 96
   },
+  "panel-light": {
+    "x": 264,
+    "y": 0,
+    "w": 128,
+    "h": 96
+  },
   "button": {
-    "x": 1056,
+    "x": 1188,
     "y": 0,
     "w": 160,
     "h": 112
   },
   "button-hover": {
-    "x": 1220,
+    "x": 1352,
     "y": 0,
     "w": 160,
     "h": 112
   },
   "button-pressed": {
-    "x": 1384,
+    "x": 1516,
     "y": 0,
     "w": 160,
     "h": 112
   },
   "button-disabled": {
-    "x": 660,
+    "x": 792,
     "y": 0,
     "w": 128,
     "h": 96
   },
   "button-quiet": {
-    "x": 1548,
+    "x": 1680,
     "y": 0,
     "w": 160,
     "h": 112
   },
   "panel-private": {
-    "x": 924,
+    "x": 1056,
     "y": 0,
     "w": 128,
     "h": 96
   },
   "button-quiet-hover": {
-    "x": 1712,
+    "x": 1844,
     "y": 0,
     "w": 160,
     "h": 112
   },
   "button-quiet-pressed": {
-    "x": 1876,
-    "y": 0,
+    "x": 0,
+    "y": 116,
     "w": 160,
     "h": 112
   },
   "route-arrow": {
-    "x": 0,
+    "x": 164,
     "y": 116,
     "w": 224,
     "h": 224
   },
   "route-arrow-hot": {
-    "x": 228,
+    "x": 392,
     "y": 116,
     "w": 224,
     "h": 224
   },
   "board-card": {
-    "x": 456,
+    "x": 620,
     "y": 116,
     "w": 180,
     "h": 220
   },
   "victory-badge": {
-    "x": 640,
+    "x": 804,
     "y": 116,
     "w": 160,
     "h": 160
   },
   "stage-ray": {
-    "x": 804,
+    "x": 968,
     "y": 116,
     "w": 128,
     "h": 512
   },
   "reward-spark": {
-    "x": 936,
+    "x": 1100,
     "y": 116,
     "w": 64,
     "h": 64
   },
   "portrait-0": {
-    "x": 1004,
+    "x": 1168,
     "y": 116,
     "w": 128,
     "h": 144
   },
   "portrait-1": {
-    "x": 1136,
+    "x": 1300,
     "y": 116,
     "w": 128,
     "h": 144
   },
   "portrait-2": {
-    "x": 1268,
+    "x": 1432,
     "y": 116,
     "w": 128,
     "h": 144
   },
   "portrait-3": {
-    "x": 1400,
+    "x": 1564,
     "y": 116,
     "w": 128,
     "h": 144
   },
   "portrait-4": {
-    "x": 1532,
+    "x": 1696,
     "y": 116,
     "w": 128,
     "h": 144
   },
   "portrait-5": {
-    "x": 1664,
+    "x": 1828,
     "y": 116,
     "w": 128,
     "h": 144
@@ -258,45 +264,267 @@
     "h": 64
   },
   "role-illuminator": {
-    "x": 340,
-    "y": 796,
-    "w": 96,
-    "h": 96
+    "x": 184,
+    "y": 1344,
+    "w": 192,
+    "h": 192
   },
   "role-guardian": {
-    "x": 440,
-    "y": 796,
-    "w": 96,
-    "h": 96
+    "x": 640,
+    "y": 1344,
+    "w": 192,
+    "h": 192
   },
   "role-trapper": {
-    "x": 540,
-    "y": 796,
-    "w": 96,
-    "h": 96
+    "x": 1096,
+    "y": 1344,
+    "w": 192,
+    "h": 192
   },
   "role-thief": {
-    "x": 640,
-    "y": 796,
-    "w": 96,
-    "h": 96
+    "x": 1552,
+    "y": 1344,
+    "w": 192,
+    "h": 192
   },
   "role-shifter": {
-    "x": 740,
-    "y": 796,
-    "w": 96,
-    "h": 96
+    "x": 0,
+    "y": 1604,
+    "w": 192,
+    "h": 192
   },
   "role-recorder": {
-    "x": 840,
-    "y": 796,
+    "x": 456,
+    "y": 1604,
+    "w": 192,
+    "h": 192
+  },
+  "coin-victory": {
+    "x": 1244,
+    "y": 1604,
     "w": 96,
     "h": 96
   },
-  "coin-victory": {
-    "x": 940,
+  "texture-metal": {
+    "x": 1040,
     "y": 796,
+    "w": 256,
+    "h": 256
+  },
+  "texture-paper": {
+    "x": 1300,
+    "y": 796,
+    "w": 256,
+    "h": 256
+  },
+  "texture-velvet": {
+    "x": 1560,
+    "y": 796,
+    "w": 256,
+    "h": 256
+  },
+  "control-action-idle": {
+    "x": 0,
+    "y": 1056,
+    "w": 256,
+    "h": 56
+  },
+  "control-action-primary-idle": {
+    "x": 260,
+    "y": 1056,
+    "w": 256,
+    "h": 56
+  },
+  "control-action-hover": {
+    "x": 520,
+    "y": 1056,
+    "w": 256,
+    "h": 56
+  },
+  "control-action-primary-hover": {
+    "x": 780,
+    "y": 1056,
+    "w": 256,
+    "h": 56
+  },
+  "control-action-pressed": {
+    "x": 1040,
+    "y": 1056,
+    "w": 256,
+    "h": 56
+  },
+  "control-action-primary-pressed": {
+    "x": 1300,
+    "y": 1056,
+    "w": 256,
+    "h": 56
+  },
+  "control-action-disabled": {
+    "x": 1560,
+    "y": 1056,
+    "w": 256,
+    "h": 56
+  },
+  "control-action-primary-disabled": {
+    "x": 0,
+    "y": 1116,
+    "w": 256,
+    "h": 56
+  },
+  "control-compact-idle": {
+    "x": 260,
+    "y": 1116,
+    "w": 96,
+    "h": 56
+  },
+  "control-compact-primary-idle": {
+    "x": 360,
+    "y": 1116,
+    "w": 96,
+    "h": 56
+  },
+  "control-compact-hover": {
+    "x": 460,
+    "y": 1116,
+    "w": 96,
+    "h": 56
+  },
+  "control-compact-primary-hover": {
+    "x": 560,
+    "y": 1116,
+    "w": 96,
+    "h": 56
+  },
+  "control-compact-pressed": {
+    "x": 660,
+    "y": 1116,
+    "w": 96,
+    "h": 56
+  },
+  "control-compact-primary-pressed": {
+    "x": 760,
+    "y": 1116,
+    "w": 96,
+    "h": 56
+  },
+  "control-compact-disabled": {
+    "x": 860,
+    "y": 1116,
+    "w": 96,
+    "h": 56
+  },
+  "control-compact-primary-disabled": {
+    "x": 960,
+    "y": 1116,
+    "w": 96,
+    "h": 56
+  },
+  "control-socket-idle": {
+    "x": 1060,
+    "y": 1116,
+    "w": 72,
+    "h": 72
+  },
+  "control-socket-hover": {
+    "x": 1136,
+    "y": 1116,
+    "w": 72,
+    "h": 72
+  },
+  "control-socket-pressed": {
+    "x": 1212,
+    "y": 1116,
+    "w": 72,
+    "h": 72
+  },
+  "control-socket-disabled": {
+    "x": 1288,
+    "y": 1116,
+    "w": 72,
+    "h": 72
+  },
+  "control-card-idle": {
+    "x": 1364,
+    "y": 1116,
+    "w": 180,
+    "h": 224
+  },
+  "control-card-hover": {
+    "x": 1548,
+    "y": 1116,
+    "w": 180,
+    "h": 224
+  },
+  "control-card-pressed": {
+    "x": 1732,
+    "y": 1116,
+    "w": 180,
+    "h": 224
+  },
+  "control-card-disabled": {
+    "x": 0,
+    "y": 1344,
+    "w": 180,
+    "h": 224
+  },
+  "sigil-illuminator": {
+    "x": 380,
+    "y": 1344,
+    "w": 256,
+    "h": 256
+  },
+  "sigil-guardian": {
+    "x": 836,
+    "y": 1344,
+    "w": 256,
+    "h": 256
+  },
+  "sigil-trapper": {
+    "x": 1292,
+    "y": 1344,
+    "w": 256,
+    "h": 256
+  },
+  "sigil-thief": {
+    "x": 1748,
+    "y": 1344,
+    "w": 256,
+    "h": 256
+  },
+  "sigil-shifter": {
+    "x": 196,
+    "y": 1604,
+    "w": 256,
+    "h": 256
+  },
+  "sigil-recorder": {
+    "x": 652,
+    "y": 1604,
+    "w": 256,
+    "h": 256
+  },
+  "notebook": {
+    "x": 912,
+    "y": 1604,
     "w": 96,
     "h": 96
+  },
+  "lens": {
+    "x": 1012,
+    "y": 1604,
+    "w": 128,
+    "h": 128
+  },
+  "hint-charge": {
+    "x": 1144,
+    "y": 1604,
+    "w": 96,
+    "h": 96
+  },
+  "scan-ring": {
+    "x": 1344,
+    "y": 1604,
+    "w": 256,
+    "h": 256
   }
 }

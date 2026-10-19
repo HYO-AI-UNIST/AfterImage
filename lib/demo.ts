@@ -29,7 +29,7 @@ export function createDemo(role?: RoleId): GameState {
   for (let i = 1; i < names.length; i++) state = addPlayer(state, { id: `demo-${i}`, name: names[i] });
   state = applyAction(state, DEMO_SELF_ID, { type: 'start' }, now).state;
   state = { ...state, demo: true, starterSeat: 0, activeSeat: 0 };
-  state = applyAction(state, DEMO_SELF_ID, { type: 'chooseRole', role: role ?? 'illuminator' }, now).state;
+  if(role)state = applyAction(state, DEMO_SELF_ID, { type: 'chooseRole', role }, now).state;
   return prepareBots(state, now);
 }
 

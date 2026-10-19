@@ -11,6 +11,8 @@ export interface PeekEntry extends MemoEntry, MemoTarget {}
 export interface Player { id: string; name: string; seat: number; score: number; coins: number; ready: boolean; role?: RoleId; blessings?: number; peeks?: number; shifts?: number; roleRevision?: number; memoRevision?: number }
 export interface GameEvent { id: string; type: 'move' | 'explosion' | 'rotation'; actorSeat: number; ownerSeat: number; until: number; from?: NodeId; to?: NodeId; edgeId?: string }
 export interface RoundWinner { seat: number; points: number; remainingCoins?: number; ownerSeat?: number; coinsTransferred?: number }
+/** Public activation only. Contains no mine, hint, note or target information. */
+export interface AbilityCue { id: string; role: 'guardian' | 'shifter'; actorSeat: number; until: number }
 export interface RoomSettings { playerCount: number; hintCoins: number; totalRounds: number; gridSize: number }
 export interface GameState {
   code: string; phase: Phase; round: number; totalRounds: number; playerCount: number; hintCoins: number; gridSize: number; rotation: number;
@@ -33,6 +35,7 @@ export interface GameState {
   blessingSeat?: number | null;
   /** Only the first queued owner may privately change their own board. */
   shiftQueue?: number[];
+  abilityCue?: AbilityCue;
 }
 export interface RoomView {
   code: string; phase: Phase; round: number; totalRounds: number; playerCount: number; hintCoins: number; gridSize: number; rotation: number;
@@ -50,6 +53,7 @@ export interface RoomView {
   selfMemos?: Array<MemoEntry | null>; memoCapacity?: number; peekableMemos?: MemoTarget[];
   blessingSeat?: number; shiftSeat?: number; shiftMines?: string[]; ownConcealed?: string[];
   rolesEnabled?: boolean;
+  abilityCue?: AbilityCue;
 }
 export type GameAction =
   | { type: 'settings'; settings: RoomSettings }

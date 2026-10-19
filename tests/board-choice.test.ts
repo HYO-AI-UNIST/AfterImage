@@ -190,7 +190,7 @@ test('legacy eight-seat play stays intact and upgrades to six seats plus waiting
 });
 
 test('demo bot selection uses public identities without reading any candidate mine layout', () => {
-  let state = demoAction(createDemo(), { type: 'place', mines: [] }, 0).state;
+  let state = demoAction(createDemo('illuminator'), { type: 'place', mines: [] }, 0).state;
   state = { ...state, activeSeat: 1 };
   // Selection validates existence only after deciding, so observe the chosen
   // owner rather than permitting the policy to inspect any candidate layout.

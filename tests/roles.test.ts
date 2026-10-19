@@ -53,7 +53,7 @@ test('new rooms enable manual roles; two-player games exclude unusable memo role
   assert.deepEqual(availableRoles(2), ['illuminator', 'guardian', 'trapper', 'shifter']);
 });
 
-test('manual role choices allow duplicates and changes before placement while requiring selection', () => {
+test('manual role choices allow duplicates, require selection, and lock immediately', () => {
   let state = placing(3);
   state = { ...state, players: state.players.map((player) => ({ ...player, role: undefined })) };
   assert.throws(() => applyAction(state, id(0), { type: 'place', mines: [] }, 0), /특수 능력을 선택/);
@@ -62,12 +62,12 @@ test('manual role choices allow duplicates and changes before placement while re
   assert.equal(state.players[0].coins, 5);
   assert.equal(state.players[1].coins, 5);
   assert.equal(state.players[0].role, state.players[1].role);
-  state = applyAction(state, id(0), { type: 'chooseRole', role: 'guardian' }, 0).state;
-  assert.equal(state.players[0].coins, 3);
-  assert.equal(state.players[0].blessings, 2);
+  assert.throws(() => applyAction(state, id(0), { type: 'chooseRole', role: 'guardian' }, 0), /이미 확정/);
+  assert.equal(state.players[0].coins, 5);
+  assert.equal(state.players[0].blessings, 0);
   assert.equal(state.players[1].coins, 5);
-  assert.equal(state.players[0].roleRevision, state.revision);
-  assert.ok(state.players[1].roleRevision! < state.players[0].roleRevision!);
+  assert.equal(state.players[1].roleRevision, state.revision);
+  assert.ok(state.players[1].roleRevision! > state.players[0].roleRevision!);
   assert.equal('roleRevision' in viewFor(state, id(0), 0).players[0], false);
   state = applyAction(state, id(0), { type: 'place', mines: [] }, 0).state;
   assert.throws(() => applyAction(state, id(0), { type: 'chooseRole', role: 'thief' }, 0), /완료한 뒤/);

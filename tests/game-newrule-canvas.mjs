@@ -5,7 +5,7 @@ import { mkdir } from 'node:fs/promises';
 const base=process.env.MINDMINER_URL||'http://127.0.0.1:5173';
 const output=new URL('../outputs/qa/newrule/',import.meta.url);await mkdir(output,{recursive:true});
 const browser=await chromium.launch({headless:true,args:['--use-angle=swiftshader','--enable-unsafe-swiftshader']});
-const errors=[],roles=['illuminator','guardian','trapper','thief','shifter','recorder'];
+const errors=[];
 const filter=process.env.MINDMINER_ROLE;
 let activePage;
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -52,7 +52,7 @@ async function fixture(role,grid=4,rounds=2){
     },{code,token:members[actor].token});
     await page.goto(base);await page.locator('canvas[data-ready="true"]').waitFor({timeout:60000});await phase(page,'placing');await overlay(page,'roles');
     assert.equal(await page.locator('button,h1,[role="button"]').count(),0,'Visual UI remains raster-only');
-    for(let i=0;i<roles.indexOf(role);i++)await control(page,'role-next');
+    await control(page,`role-preview:${role}`);
     if(role==='illuminator'){
         await control(page,'role-guide');await overlay(page,'help');
         assert.equal(await page.locator('canvas').evaluate(c=>c.dataset.guidePage),'9');
@@ -108,7 +108,7 @@ try{
     await control(light.page,'reveal');await overlay(light.page,'reveal');await shot(light.page,'round-reveal');await control(light.page,'close');
     await light.act(0,{type:'nextRound'});await phase(light.page,'placing');await overlay(light.page,'roles');
     const retained=await light.view(light.actor);assert.equal('ownMines'in retained,false);assert.deepEqual(retained.rebuildSeats,[light.owner]);
-    await control(light.page,'role-confirm');await control(light.page,'ready');assert.equal((await stateWhen(light,v=>v.players[light.actor].ready)).players[light.actor].ready,true);
+    await control(light.page,'role-confirm');assert.equal((await stateWhen(light,v=>v.players[light.actor].ready)).players[light.actor].ready,true);
     for(let i=0;i<6;i++)if(i!==light.actor){await light.act(i,{type:'chooseRole',role:'illuminator'});await light.act(i,i===light.owner?{type:'place',mines:[]}:{type:'ready'});}
     const next=await light.view(),actor2=next.activeSeat,owner2=(actor2+1)%6;await light.act(actor2,{type:'chooseBoard',ownerSeat:owner2});await escape(light,actor2);await phase(light.page,'finished');assert.equal(Object.keys((await light.view()).revealedBoards).length,6);
     await light.act(0,{type:'restart'});await phase(light.page,'waiting');assert.ok((await light.view()).players.every(p=>p.score===3));
@@ -128,7 +128,7 @@ try{
     for(const role of ['thief','recorder']){
         if(filter&&filter!==role)continue;
         const f=await fixture(role);assert.equal((await f.view(f.actor)).memoCapacity,role==='recorder'?4:2);
-        await control(f.page,'memos');await control(f.page,'memo-edge:0-0~1-0');await control(f.page,'memo-status:safe');await control(f.page,'memo-save');
+        await control(f.page,'memos');await control(f.page,'memo-edge:0-0~1-0');await control(f.page,'memo-status:safe');
         assert.equal((await stateWhen(f,v=>v.selfMemos[0]?.status==='safe')).selfMemos[0].status,'safe');await shot(f.page,`${role}-memo`);await control(f.page,'close');
         const memoReply=await f.act(f.owner,{type:'memo',slot:0,entry:{boardOwnerId:f.members[f.actor].view.selfId,edgeId:f.concealed,status:'mine'}});
         await f.page.waitForFunction(revision=>Number(document.querySelector('canvas').dataset.revision)>=revision,memoReply.view.revision);
@@ -167,7 +167,7 @@ try{
         await control(page,`seat:${members[1].view.selfId}:0`);await stateWhen({actor:0,view},v=>v.players.length===1);await control(page,`seat:${members[2].view.selfId}:1`);await stateWhen({actor:0,view},v=>v.players.length===2);
         assert.equal((await view()).players[1].id,members[2].view.selfId);await control(page,'close');await shot(page,'lobby-mobile');
         await control(page,'start');await phase(page,'placing');await overlay(page,'roles');
-        for(let i=0;i<4;i++)await control(page,'role-next');
+        for(let i=0;i<4;i++)await page.keyboard.press('ArrowRight');
         await control(page,'role-confirm');await control(page,'ready');
         assert.equal((await stateWhen({actor:0,view},v=>v.players[0].ready)).players[0].role,'illuminator','Two-player gallery cycles through exactly four eligible roles');
         await act(2,{type:'chooseRole',role:'guardian'});await act(2,{type:'place',mines:[]});await phase(page,'playing');

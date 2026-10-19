@@ -9,7 +9,8 @@ test('solo demo prepares five opponents and waits for the real player', () => {
   assert.equal(state.players.length, 6);
   assert.equal(state.players.filter(p => p.ready).length, 5);
   assert.equal(viewFor(state, DEMO_SELF_ID).ownMines?.length, 0);
-  const played = demoAction(state, { type: 'place', mines: [] }).state;
+  const selectedRole = demoAction(state, { type: 'chooseRole', role: 'illuminator' }).state;
+  const played = demoAction(selectedRole, { type: 'place', mines: [] }).state;
   assert.equal(played.phase, 'playing');
   assert.equal(played.players[played.activeSeat].id, DEMO_SELF_ID);
   assert.equal(boardOwnerSeat(played), -1);

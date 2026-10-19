@@ -5,6 +5,8 @@ import { ROOM_SETTING_LIMITS } from '../settings';
 import type { RoomSettings } from '../contracts';
 import { boardPosition } from './board-layout';
 import { choosingBoard, ownBlessing, ownShift, edgeLabel } from './rule-ui';
+import { ROLE_ART } from './presentation';
+import { drawRoleAura } from './role-aura';
 
 const white = '#ffffff', muted = '#99a3a8', red = '#c28174';
 export const RULE_OVERLAYS = ['roles', 'memos', 'peek', 'peek-result', 'settings', 'roster', 'reveal'];
@@ -12,8 +14,12 @@ export const RULE_OVERLAYS = ['roles', 'memos', 'peek', 'peek-result', 'settings
 function sheet(h: MineHud, title: string, width = 740, height = 630) {
     h.scrim(.84);
     const w = Math.min(h.width - 24, width), hh = Math.min(h.height - 24, height), x = (h.width - w) / 2, y = (h.height - hh) / 2;
-    h.frame('panel', x, y, w, hh); h.text(title, x + 23, y + 34, w < 500 ? 21 : 25, white, 700, 'left', w - 90);
-    h.button('close', '', x + w - 55, y + 13, 38, 38, false, false, 'close');
+    h.frame('panel', x, y, w, hh);
+    const archive=title.includes('기억')||title.includes('메모');
+    if(archive)h.surface('texture-paper',x+14,y+65,w-28,hh-80,.95);
+    const g=h.context;g.strokeStyle='#91a9b32c';g.lineWidth=1;g.beginPath();g.moveTo(x+24,y+63);g.lineTo(x+w-24,y+63);g.stroke();
+    h.text(title, x + 23, y + 34, w < 500 ? 21 : 25, white, 700, 'left', w - 90);
+    h.iconButton('close','닫기','close',x+w-60,y+12,44);
     return {x,y,w,h:hh, compact: hh < 500};
 }
 
@@ -23,17 +29,19 @@ export function diagram(h: MineHud, m: HudModel, x: number, y: number, w: number
     const scale = Math.min((w - 30) / 14.4, (height - 24) / 12.4708), center = x + w / 2;
     const p = (id: string) => { const [px,pz] = boardPosition(id,size); return {x:center+px*scale,y:y+12+(pz+7.2)*scale}; };
     const g = h.context;
+    if(options.interactive)h.memoMap={x,y,w,h:height,points:board.nodes.map(n=>({id:n.id,...p(n.id)})),edges:board.edges};
     for (const edge of board.edges) {
         const a=p(edge.a),b=p(edge.b),selected=edge.id===options.edge,mined=options.mines?.includes(edge.id);
-        g.beginPath();g.moveTo(a.x,a.y);g.lineTo(b.x,b.y);g.lineWidth=selected?5:mined?3:1.4;g.strokeStyle=selected?white:mined?red:'#52616a';g.stroke();
+        g.beginPath();g.moveTo(a.x,a.y);g.lineTo(b.x,b.y);g.lineWidth=selected?7:mined?3:options.interactive?3:1.4;g.strokeStyle=selected?(options.interactive?m.rule.memoStatus==='mine'?'#ff8c78':m.rule.memoStatus==='safe'?'#8ee7cb':white:white):mined?red:'#637985';g.stroke();
         if (mined) h.imageAt('mine',(a.x+b.x)/2-8,(a.y+b.y)/2-8,16,16);
         if (options.interactive) {
             // Middle segments avoid ambiguous taps at dense junctions.
             const mx=(a.x+b.x)/2,my=(a.y+b.y)/2;
-            h.regions.push({id:`${options.interactive}:${edge.id}`,label:edgeLabel(edge.id),x:mx-13,y:my-13,w:26,h:26,disabled:false});
+            h.regions.push({id:`${options.interactive}:${edge.id}`,label:edgeLabel(edge.id),x:mx-22,y:my-22,w:44,h:44,disabled:m.session.busy});
         }
     }
     for (const node of board.nodes) {const a=p(node.id);g.beginPath();g.arc(a.x,a.y,node.start?3.5:2.5,0,Math.PI*2);g.fillStyle='#b9c4cb';g.fill();}
+    if(options.interactive&&m.rule.memoNode){const from=m.rule.memoNode;for(const node of board.nodes){const connected=board.edges.some(e=>(e.a===from&&e.b===node.id)||(e.b===from&&e.a===node.id));if(node.id===from||connected){const a=p(node.id);g.beginPath();g.arc(a.x,a.y,node.id===from?12:9,0,Math.PI*2);g.strokeStyle=node.id===from?'#ffffff':'#8ee7cb';g.lineWidth=2;g.stroke();}}}
 }
 
 export function ruleLobby(h: MineHud, m: HudModel) {
@@ -59,79 +67,134 @@ export function ruleLobby(h: MineHud, m: HudModel) {
 }
 
 export function ruleGame(h: MineHud,m: HudModel,time: number) {
-    const v=m.session.view!,self=m.session.self,mobile=h.width<700,placing=v.phase==='placing',shift=ownShift(v);
+    const v=m.session.view!,self=m.session.self,mobile=h.width<700,short=h.height<500,placing=v.phase==='placing',shift=ownShift(v),guard=ownBlessing(v);
     if(choosingBoard(v)&&!m.overlay){boardChoice(h,m);return;}
-    const w=Math.min(h.width-24,900),hh=mobile?(h.height<600?185:211):145,x=(h.width-w)/2,y=h.height-hh-14;
-    h.frame('panel',x,y,w,hh);
-    const rebuild=!!self&&canRebuildBoard(v,self.seat),ready=!!self?.ready,guard=ownBlessing(v);
-    let title=placing?(self?rebuild?'수렛길에 지뢰를 배치하세요':'기존 갱도를 유지합니다':'광부들이 갱도를 준비하고 있어요'):shift?'도전 전에 내 지뢰를 옮길까요?':guard?'가호 사용 여부를 결정하세요':v.shiftSeat!==undefined?'다른 광부가 지뢰를 옮기고 있어요':v.blessingSeat!==undefined?'귀환의 가호를 결정하고 있어요':v.event?.type==='explosion'?'폭발 위치를 기억하세요':m.session.ownTurn?(m.hintMode?'확인할 선로를 고르세요':v.position?'연결된 분기점으로 이동':'출발역을 고르세요'):`${v.players[v.activeSeat]?.name}의 탐험`;
-    if(placing&&ready)title='준비 완료 · 다른 광부를 기다려요';
-    h.text(title,x+20,y+25,mobile?17:21,white,700,'left',w-40);
-    const info=placing?`${v.players.filter(p=>p.ready).length}/${v.playerCount} 준비 · ${rebuild?`${m.draft.length}/${maxMines(v.gridSize)} 지뢰`:'배치 비공개 유지'}${m.rule.tool==='conceal'?` · 위장 ${m.rule.concealed.length}/4`:''}`:shift?`남은 이동 ${self?.shifts??0}/7 · ${!m.rule.shiftFrom?'내 지뢰를 선택':!m.rule.shiftTo?'빈 선로를 선택':'안전 경로를 확인 후 확정'}`:self?`힌트 ${self.coins??0}/${roundHintCoins(v.hintCoins,self.role)} · 승점 코인 ${self.score}${v.activeBoardMineCount===undefined?'':` · 이 판 지뢰 ${v.activeBoardMineCount}개`}`:`관전 중${v.activeBoardMineCount===undefined?'':` · 이 판 지뢰 ${v.activeBoardMineCount}개`} · 공개 정보만 보여요`;
-    h.text(info,x+20,y+53,11,muted,500,'left',w-40);
-    if(self?.role)h.text(ROLE_DETAILS[self.role].name,x+20,y+(mobile?79:78),12,white,600);
-    const by=y+hh-53,bh=39,gap=7;
-    if(placing&&self){
-        if(mobile){const ty=y+(hh<200?89:98);h.button('roles','능력 선택',x+16,ty,(w-39)/2,35,false,ready||m.session.blocked);h.button('tool',m.rule.tool==='conceal'?'위장 선택 중':'지뢰 선택 중',x+23+(w-39)/2,ty,(w-39)/2,35,false,ready||!rebuild||self.role!=='trapper');}
-        else{h.button('roles','능력',x+w-312,y+17,86,37,false,ready||m.session.blocked);h.button('tool',m.rule.tool==='conceal'?'위장 중':'지뢰 도구',x+w-217,y+17,101,37,false,ready||!rebuild||self.role!=='trapper');}
-        const left=x+16;
-        if(rebuild){h.button('random','',left,by,39,bh,false,ready||m.session.blocked,'random');h.button('clear','',left+46,by,39,bh,false,ready||m.session.blocked,'clear');}
-        const bx=rebuild?left+92:left,bw=w-(bx-x)-16;
-        h.button('ready',ready?'준비 완료':rebuild?'이 배치로 준비':'이 판을 유지하고 준비',bx,by,bw,bh,true,ready||m.session.blocked||!!v.rolesEnabled&&!self.role||rebuild&&(!hasSafePath(m.draft,v.gridSize)||m.draft.length>maxMines(v.gridSize)));
+    const w=Math.min(h.width-24,850),hh=short?122:mobile?154:136,x=(h.width-w)/2,y=h.height-hh-14;
+    const rebuild=!!self&&canRebuildBoard(v,self.seat),ready=!!self?.ready,retained=placing&&!!self&&!rebuild;
+    const command=placing&&!retained||shift;
+    if(command)h.frame('panel',x,y,w,hh);
+    const title=placing?(ready?'준비 완료':self?rebuild?'지뢰 배치':'판 유지':'준비 중'):'지뢰 이동';
+    if(command)h.text(title,x+20,y+24,mobile?17:20,white,700,'left',w-40);
+    const info=placing?`${v.players.filter(p=>p.ready).length}/${v.playerCount} 준비 · ${rebuild?`${m.draft.length}/${maxMines(v.gridSize)} 지뢰`:'배치 비공개'}${m.rule.tool==='conceal'?` · 위장 ${m.rule.concealed.length}/4`:''}`:`${!m.rule.shiftFrom?'내 지뢰 선택':!m.rule.shiftTo?'빈 선로 선택':'이동 확정'} · ${self?.shifts??0}/7회`;
+    if(command)h.text(info,x+20,y+49,11,muted,500,'left',w-40);
+    const by=y+hh-62,bh=48;
+    if(placing&&self&&rebuild){
+        h.iconButton('random','지뢰 무작위 배치','random',x+14,by,bh,ready||m.session.blocked);h.iconButton('clear','현재 도구의 배치 지우기','clear',x+67,by,bh,ready||m.session.blocked);
+        const bx=x+124;
+        h.button('ready',ready?'준비 완료':'설계 완료',bx,by,w-(bx-x)-18,bh,true,ready||m.session.blocked||!!v.rolesEnabled&&!self.role||!hasSafePath(m.draft,v.gridSize)||m.draft.length>maxMines(v.gridSize), 'check');
     }else if(shift&&self){
-        if(v.memoCapacity)h.button('memos','내 메모',x+w-113,y+45,96,32,false,m.session.busy);
         const preview=m.rule.shiftFrom&&m.rule.shiftTo?(v.shiftMines??[]).map(id=>id===m.rule.shiftFrom?m.rule.shiftTo!:id):[];
-        h.button('shift-skip','건너뛰기',x+16,by,(w-39)/2,bh,false,m.session.blocked);
-        h.button('shift-confirm','옮기고 판 선택 −1',x+23+(w-39)/2,by,(w-39)/2,bh,true,m.session.blocked||!m.rule.shiftFrom||!m.rule.shiftTo||!hasSafePath(preview,v.gridSize));
-    }else if(self&&!placing){
-        const buttons=[['hint',m.hintMode?'힌트 취소':'힌트 −1'],['memos','내 메모'],['roles','능력']];
-        if(self.role==='thief')buttons.push(['peek',`훔쳐보기 ${self.peeks??0}`]);
-        const bw=(w-32-gap*(buttons.length-1))/buttons.length;
-        buttons.forEach(([id,label],i)=>h.button(id,label,x+16+i*(bw+gap),by,bw,bh,id==='hint',id==='hint'?(!m.session.ownTurn||m.session.blocked||v.boardOwnerSeat<0||v.blessingSeat!==undefined||v.shiftSeat!==undefined||!m.hintMode&&(self.coins??0)<=0):id==='peek'?(!m.session.ownTurn||m.session.blocked||v.blessingSeat!==undefined||v.shiftSeat!==undefined||(self.peeks??0)<=0):id==='memos'?(m.session.busy||!v.memoCapacity):false));
+        h.button('shift-skip','유지',x+18,by,68,bh,false,m.session.blocked);
+        h.iconButton('shift-undo','이동 선택 되돌리기','back',x+94,by,48,m.session.blocked||!m.rule.shiftFrom);
+        h.button('shift-confirm','지뢰 이동',x+150,by,w-168,bh,true,m.session.blocked||!m.rule.shiftFrom||!m.rule.shiftTo||!hasSafePath(preview,v.gridSize));
     }
+    // Field tools live beside the play space; resource meters are separate from commands.
+    if(self){
+        const ry=short?124:mobile?193:190,rx=short?32:mobile?32:52;
+        if(!retained||!short){
+            h.resource('coin-victory',self.score,rx,ry,'승점');
+            h.resource('hint-charge',self.coins??0,rx+101,ry,'힌트',roundHintCoins(v.hintCoins,self.role));
+            if(v.phase==='playing'&&v.activeBoardMineCount!==undefined)h.resource('mine',v.activeBoardMineCount,rx+202,ry,'이 판');
+        }
+        const size=retained&&short?38:short?44:mobile?56:60,dy=retained&&short?20:command?(short?112:y-size-20):h.height-size-22,icons:Array<[string,string,string,boolean,number?]>=[];
+        if(v.phase==='playing'&&!shift&&!guard)icons.push(['hint',m.hintMode?'조사 취소':'선로 조사','lens',!m.session.ownTurn||m.session.blocked||v.boardOwnerSeat<0||v.blessingSeat!==undefined||v.shiftSeat!==undefined||!m.hintMode&&(self.coins??0)<=0,self.coins??0]);
+        if(v.phase==='playing')icons.push(['memos','나의 기억 수첩','notebook',!v.memoCapacity||m.session.busy,v.selfMemos?.filter(Boolean).length??0]);
+        if(self.role&&!(self.role==='thief'&&v.phase==='playing')&&!(self.role==='trapper'&&placing&&rebuild))icons.push(['roles',ROLE_DETAILS[self.role].name,`role-${self.role}`,false,self.role==='guardian'?self.blessings??0:self.role==='shifter'?self.shifts??0:undefined]);
+        if(placing&&rebuild&&self.role==='trapper')icons.push(['tool',m.rule.tool==='conceal'?'지뢰 도구로 전환':'장막 도구로 전환',m.rule.tool==='conceal'?'mine':'role-trapper',ready]);
+        if(v.phase==='playing'&&self.role==='thief')icons.push(['peek','타인의 메모 훔쳐보기','role-thief',!m.session.ownTurn||m.session.blocked||v.blessingSeat!==undefined||v.shiftSeat!==undefined||(self.peeks??0)<=0,self.peeks??0]);
+        const sx=retained&&short?h.width-164-(icons.length-1)*(size+8):command?h.width-18-icons.length*(size+8):(h.width-icons.length*(size+8)+8)/2;
+        icons.forEach(([id,label,icon,disabled,count],i)=>h.iconButton(id,label,icon,sx+i*(size+8),dy,size,disabled,count));
+    }
+    if(retained&&!m.overlay)retainedWaiting(h,m,time);
     if(guard&&!m.overlay){h.regions=[];blessing(h,m);}
-    if(m.session.ownTurn&&!placing&&!guard&&!shift&&time-m.turnAt<1300&&!m.overlay&&!m.cinematic&&v.boardOwnerSeat>=0){h.text('YOUR TURN',h.width/2,h.height*.29,mobile?25:36,white,700,'center');}
+    if(m.session.ownTurn&&!placing&&!guard&&!shift&&time-m.turnAt<1300&&!m.overlay&&!m.cinematic&&v.boardOwnerSeat>=0)h.text('YOUR TURN',h.width/2,h.height*.29,mobile?25:36,white,700,'center');
+}
+
+function retainedWaiting(h:MineHud,m:HudModel,time:number){
+    const v=m.session.view!,mobile=h.width<700,short=h.height<(mobile?740:650);
+    const w=Math.min(h.width-32,620),hh=short?194:mobile?360:310,x=(h.width-w)/2;
+    const y=short?Math.min(h.height-hh-16,Math.max(176,(h.height-hh)/2)):Math.max(mobile?255:235,(h.height-hh)/2);
+    const g=h.context,done=v.players.filter(p=>p.ready).length,reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+    h.frame('panel',x,y,w,hh);h.surface('texture-metal',x+14,y+14,w-28,hh-28,.8);
+    const art=short?58:mobile?80:98,ax=mobile&&!short?x+w/2:x+70,ay=short?y+45:mobile?y+68:y+89;
+    h.imageAt('board-card',ax-art/2,ay-art*.57,art,art*1.15,.85);
+    h.imageAt('check',ax+art*.18,ay+art*.1,art*.42,art*.42);
+    const tx=mobile&&!short?x+w/2:x+145,ty=short?y+30:mobile?y+139:y+46,align=mobile&&!short?'center':'left',tw=mobile&&!short?w-36:w-165;
+    h.text('판 유지',tx,ty,short?19:25,white,700,align,tw);
+    if(mobile&&!short){
+        h.text('이번 라운드에는 판을 수정하지 않습니다.',tx,ty+39,13,white,500,'center',w-38);
+        h.text('다른 광부의 준비를 기다리고 있어요.',tx,ty+64,12,muted,500,'center',w-38);
+    }else{
+        h.wrap('이번 라운드에는 판을 수정하지 않습니다.',tx,ty+35,tw,short?11:14,white,short?18:23);
+        if(!short)h.text('다른 광부의 준비를 기다리고 있어요.',tx,ty+89,12,muted,500,'left',tw);
+    }
+    const rowY=short?y+99:mobile?y+239:y+184,cw=Math.min(74,(w-36)/v.playerCount),sx=x+(w-cw*v.playerCount)/2;
+    v.players.forEach((player,i)=>{
+        const xx=sx+(i+.5)*cw;
+        h.imageAt(`portrait-${player.seat}`,xx-14,rowY,28,32,player.ready?1:.4);
+        if(player.ready)h.imageAt('check',xx+4,rowY+20,18,18);
+        h.text(player.name,xx,rowY+47,9,player.ready?white:muted,500,'center',cw-4);
+    });
+    const lineY=y+hh-29;
+    g.save();g.fillStyle='#263138';g.fillRect(x+24,lineY,w-48,3);g.fillStyle='#dbeaf0';g.globalAlpha=reduce?1:.7+.3*Math.sin(time*.002);g.fillRect(x+24,lineY,(w-48)*done/v.playerCount,3);g.restore();
+    h.text(`${done}/${v.playerCount} 준비`,x+w/2,lineY-13,10,muted,500,'center');
 }
 
 function boardChoice(h:MineHud,m:HudModel){
-    const v=m.session.view!,p=sheet(h,m.session.ownTurn?'어느 광부의 갱도에 도전할까요?':`${v.players[v.activeSeat]?.name}이 판을 고르고 있어요`,850,590),{x,y,w}=p;
+    const v=m.session.view!,p=sheet(h,m.session.ownTurn?'갱도 선택':`${v.players[v.activeSeat]?.name} · 갱도 선택`,850,590),{x,y,w}=p;
     h.regions=h.regions.filter(r=>r.id!=='close');h.button('help','',x+w-55,y+13,38,38,false,false,'help');
-    h.text('한 차례에 한 판 · 자기 판은 선택할 수 없어요',x+24,y+73,12,muted,500,'left',w-48);
-    const choices=v.players.filter(p=>p.seat!==v.activeSeat),cols=p.compact?choices.length:Math.min(3,choices.length),rows=Math.ceil(choices.length/cols),gap=10,cw=(w-48-gap*(cols-1))/cols,rh=Math.min(180,(p.h-151-gap*(rows-1))/rows);
-    choices.forEach((player,i)=>{const xx=x+24+(i%cols)*(cw+gap),yy=y+100+Math.floor(i/cols)*(rh+gap);h.button(`board:${player.seat}`,'',xx,yy,cw,rh,false,!m.session.ownTurn||m.session.blocked);const icon=Math.min(72,rh*.42);h.imageAt('board-card',xx+(cw-icon)/2,yy+9,icon,icon*1.22);h.imageAt(`portrait-${player.seat}`,xx+cw/2-11,yy+10+icon*.67,22,25);h.text(player.name,xx+cw/2,yy+rh*.66,13,white,700,'center',cw-15);if(player.role&&rh>155)h.text(ROLE_DETAILS[player.role].name,xx+cw/2,yy+rh-39,10,muted,500,'center',cw-12);h.text(`승점 ${player.score}`,xx+cw/2,yy+rh-18,11,muted,500,'center',cw-12);});
+    const choices=v.players.filter(p=>p.seat!==v.activeSeat),cols=p.compact?choices.length:Math.min(3,choices.length),rows=Math.ceil(choices.length/cols),gap=10,cw=(w-48-gap*(cols-1))/cols,rh=Math.min(180,(p.h-178-gap*(rows-1))/rows);
+    choices.forEach((player,i)=>{const xx=x+24+(i%cols)*(cw+gap),yy=y+100+Math.floor(i/cols)*(rh+gap);h.button(`board:${player.seat}`,'',xx,yy,cw,rh,false,!m.session.ownTurn||m.session.blocked);const icon=Math.min(72,rh*.42);h.imageAt('board-card',xx+(cw-icon)/2,yy+9,icon,icon*1.22);h.imageAt(`portrait-${player.seat}`,xx+cw/2-11,yy+10+icon*.67,22,25);h.text(player.name,xx+cw/2,yy+rh*.66,13,white,700,'center',cw-15);if(player.role&&rh>155)h.text(ROLE_DETAILS[player.role].name,xx+cw/2,yy+rh-39,10,muted,500,'center',cw-12);h.imageAt('coin-victory',xx+cw/2-22,yy+rh-28,20,20);h.text(String(player.score),xx+cw/2+9,yy+rh-18,12,white,700,'center');});
     if(m.session.self){
-        const thief=m.session.self.role==='thief',bw=thief?(w-57)/2:w-48;
-        h.button('memos','내 메모 살펴보기',x+24,y+p.h-45,bw,32,false,!v.memoCapacity||m.session.busy);
-        if(thief)h.button('peek',`훔쳐보기 ${m.session.self.peeks??0}`,x+33+bw,y+p.h-45,bw,32,false,!m.session.ownTurn||m.session.blocked||!(m.session.self.peeks??0)||!v.peekableMemos?.length);
+        const thief=m.session.self.role==='thief',sx=x+w/2-(thief?56:26);
+        h.iconButton('memos','나의 기억 수첩','notebook',sx,y+p.h-68,52,!v.memoCapacity||m.session.busy,v.selfMemos?.filter(Boolean).length??0);
+        if(thief)h.iconButton('peek','타인의 기억 훔쳐보기','role-thief',sx+62,y+p.h-68,52,!m.session.ownTurn||m.session.blocked||!(m.session.self.peeks??0)||!v.peekableMemos?.length,m.session.self.peeks??0);
     }
 }
 
 function blessing(h:MineHud,m:HudModel){
-    const p=sheet(h,'가호로 다시 출발할까요?',490,400),{x,y,w}=p;
-    h.regions=h.regions.filter(r=>r.id!=='close');h.button('help','',x+w-55,y+13,38,38,false,false,'help');
-    const short=p.h<400,icon=short?48:64;
-    h.imageAt('role-guardian',x+w/2-icon/2,y+72,icon,icon);h.text(`남은 가호 ${m.session.self?.blessings??0} / 2`,x+w/2,y+(short?139:159),17,white,700,'center');
-    h.wrap('같은 판, 같은 차례에서 출발역을 다시 골라요. 지뢰는 그대로 남습니다.',x+26,y+(short?167:191),w-52,13,muted,21);
-    if(m.session.view?.memoCapacity)h.button('memos','결정 전에 내 메모 보기',x+24,y+p.h-151,w-48,32,false,m.session.busy);
-    h.button('bless-use','가호로 다시 출발 −1',x+24,y+p.h-104,w-48,40,true,m.session.busy);
-    h.button('bless-skip','가호를 아끼고 차례 넘기기',x+24,y+p.h-55,w-48,40,false,m.session.busy);
+    const p=sheet(h,'귀환의 가호',540,480),{x,y,w}=p,short=p.h<430;
+    h.regions=h.regions.filter(r=>r.id!=='close');h.iconButton('help','귀환의 가호 사용법','help',x+w-60,y+12,44);
+    h.surface('texture-velvet',x+14,y+65,w-28,p.h-80,.95);
+    const size=short?108:162,cx=short?x+w*.24:x+w/2,cy=y+(short?134:135);
+    h.imageAt('sigil-guardian',cx-size*.7,cy-size*.7,size*1.4,size*1.4,.14);h.imageAt('role-guardian',cx-size/2,cy-size/2,size,size);
+    const tx=short?x+w*.65:x+w/2,ty=short?y+109:y+235,tw=short?w*.54:w-52;
+    for(let i=0;i<2;i++)h.imageAt('role-guardian',tx-34+i*37,ty+15,32,32,i<(m.session.self?.blessings??0)?1:.15);
+    h.wrap('같은 판, 같은 차례에서 다시 출발해요. 지뢰는 그대로 남습니다.',short?x+w*.39:x+30,ty+67,tw,12,muted,21);
+    if(m.session.view?.memoCapacity){h.iconButton('memos','결정 전에 기억 수첩 보기','notebook',x+24,y+p.h-130,48,m.session.busy);}
+    h.button('bless-skip','넘기기',x+24,y+p.h-66,96,48,false,m.session.busy);
+    h.button('bless-use','귀환',x+130,y+p.h-66,w-154,48,true,m.session.busy);
 }
 
 export function ruleOverlay(h:MineHud,m:HudModel){
     const v=m.session.view;
     if(!v)return;
     if(m.overlay==='roles'){
-        const p=sheet(h,'이번 라운드의 능력',760,650),{x,y,w}=p,roles=availableRoles(v.playerCount),index=Math.max(0,roles.indexOf(m.rule.role)),id=roles[index],detail=ROLE_DETAILS[id],self=m.session.self,canChoose=v.phase==='placing'&&!!self&&!self.ready&&!!v.rolesEnabled;
-        const split=w>600&&p.compact,tx=split?x+w*.34:x+24,tw=split?w*.62:w-48,top=split?y+91:y+174;
-        h.imageAt(`role-${id}`,split?x+45:x+w/2-36,y+77,72,72);
-        h.text(detail.name,tx,top,23,white,700,'left',tw);h.text(detail.subtitle,tx,top+31,12,muted,500,'left',tw);
-        let yy=h.wrap(detail.description,tx,top+65,tw,13,white,22);
-        if(!p.compact)for(const rule of detail.rules){if(yy>y+p.h-179)break;yy=h.wrap(`· ${rule}`,tx,yy+6,tw,12,muted,20);}
-        h.button('role-guide','효과와 사용 방법 자세히',x+24,y+p.h-139,w-48,32);
-        h.text(`${index+1} / ${roles.length}${self?.role===id?' · 현재 선택한 능력':''}`,x+w/2,y+p.h-91,11,muted,500,'center');
-        h.button('role-prev','이전',x+24,y+p.h-61,75,42);
-        h.button('role-next','다음',x+w-99,y+p.h-61,75,42);
-        h.button(canChoose?'role-confirm':'close',canChoose?'이 능력 선택':'알겠어요',x+108,y+p.h-61,w-216,42,true,m.session.busy);
+        const self=m.session.self,canChoose=v.phase==='placing'&&!!self&&!self.role&&!!v.rolesEnabled;
+        const roles=availableRoles(v.playerCount),index=Math.max(0,roles.indexOf(m.rule.role)),id=roles[index],detail=ROLE_DETAILS[id],art=ROLE_ART[id];
+        const p=sheet(h,detail.name,900,620),{x,y,w}=p;
+        const short=p.h<440,split=w>600,icon=short?112:split?240:p.h<600?112:144;
+        const tx=split?x+w*.46:x+26,tw=split?w*.49:w-52,font=short?13:15,line=short?22:25;
+        const lines=(text:string,size:number)=>{h.context.font=`500 ${size}px Pretendard, sans-serif`;let row='',count=1;for(const c of text){if(c==='\n'||h.context.measureText(row+c).width>tw){count++;row=c==='\n'?'':c;}else row+=c;}return count;};
+        const contentTop=y+78,contentBottom=y+p.h-(canChoose?171:105),center=(contentTop+contentBottom)/2;
+        let bodyH=lines(detail.description,font)*line;
+        const rules:string[]=[];
+        if(!short)for(const rule of detail.rules){const needed=lines(`· ${rule}`,12)*20+10;if(bodyH+needed+(split?0:icon+20)>contentBottom-contentTop)break;rules.push(rule);bodyH+=needed;}
+        const blockH=split?bodyH:icon+20+bodyH,top=center-blockH/2;
+        const ax=split?x+w*.23:x+w/2,baseY=split?center:top+icon/2,reduce=matchMedia('(prefers-reduced-motion: reduce)').matches,t=performance.now()/1000,ay=baseY+(reduce?0:Math.sin(t*1.7)*4);
+        h.surface('texture-velvet',x+14,y+64,w-28,p.h-80,.92);
+        const g=h.context;g.save();g.beginPath();g.rect(x+15,y+65,w-30,p.h-(canChoose?230:165));g.clip();
+        const auraSize=Math.min(icon,Math.max(0,contentBottom-contentTop-24)/1.3);
+        drawRoleAura(g,id,art.color,ax,baseY,auraSize,t*1000,reduce);g.restore();
+        h.imageAt(`role-${id}`,ax-icon/2,ay-icon/2,icon,icon);
+        h.regions=h.regions.filter(r=>r.id!=='close');
+        h.iconButton('role-guide','이 재능의 사용 방법','help',x+w-(canChoose?60:112),y+12,44);
+        if(!canChoose)h.iconButton('close','닫기','close',x+w-60,y+12,44);
+        let yy=h.wrap(detail.description,tx,split?top:top+icon+20,tw,font,white,line);
+        for(const rule of rules)yy=h.wrap(`· ${rule}`,tx,yy+10,tw,12,muted,20);
+        const size=Math.min(short?40:52,(w-48-(roles.length-1)*7)/roles.length),total=roles.length*size+(roles.length-1)*7,sx=x+(w-total)/2,sy=y+p.h-(canChoose?139:74);
+        roles.forEach((role,i)=>{const xx=sx+i*(size+7),key=`role-preview:${role}`;h.iconButton(key,ROLE_DETAILS[role].name,`role-${role}`,xx,sy,size,m.session.busy);if(role===id){const lift=m.session.busy?0:m.pressed===key?3:m.hover===key||m.focus===key?-2:0;h.context.strokeStyle=art.color;h.context.lineWidth=2;h.context.beginPath();h.context.arc(xx+size/2,sy+size/2+lift,size*30/72,0,Math.PI*2);h.context.stroke();}});
+        if(canChoose)h.button('role-confirm','선택',x+24,y+p.h-62,w-48,48,true,m.session.busy);
     }else if(m.overlay==='settings'){
         const p=sheet(h,'방 규칙 설정',560,500),{x,y,w}=p,fields:Array<[keyof RoomSettings,string]>=[['playerCount','참가 인원'],['hintCoins','기본 힌트'],['totalRounds','총 라운드'],['gridSize','삼각형 등분']];
         const gap=Math.min(72,(p.h-151)/4);
@@ -142,19 +205,29 @@ export function ruleOverlay(h:MineHud,m:HudModel){
         list.slice(page*5,page*5+5).forEach((player,i)=>{const yy=y+80+i*rh;h.frame('panel-light',x+24,yy,w-48,rh-7);h.text(player.name,x+39,yy+(rh-7)/2,14,white,600,'left',w-205);h.button(`seat:${player.id}:${player.seated?'0':'1'}`,player.seated?'관전으로':'참가석으로',x+w-148,yy+5,110,rh-17,false,!m.session.host||v.phase!=='waiting'||m.session.busy||!player.seated&&v.players.length>=v.playerCount);});
         h.button('roster-prev','이전',x+24,y+p.h-58,90,38,false,page===0);h.text(`${page+1} / ${Math.max(1,Math.ceil(list.length/5))}`,x+w/2,y+p.h-39,12,muted,500,'center');h.button('roster-next','다음',x+w-114,y+p.h-58,90,38,false,(page+1)*5>=list.length);
     }else if(m.overlay==='memos'){
-        const p=sheet(h,'나의 기억 수첩',720,740),{x,y,w}=p,split=w>600&&p.compact,owner=v.players[m.rule.memoOwner]??v.players[0],count=v.memoCapacity??0;
-        const sx=split?x+24:x+24,sw=split?w*.45:w-48;
-        h.text('직접 적은 추측 · 정답을 자동 확인하지 않아요',sx,y+78,11,muted,500,'left',w-48);
-        const slotW=Math.min(74,(sw-7*Math.max(0,count-1))/Math.max(1,count));
-        for(let i=0;i<count;i++)h.button(`memo-slot:${i}`,`${i+1}${v.selfMemos?.[i]?' ●':''}`,sx+i*(slotW+7),y+96,slotW,34,i===m.rule.memoSlot,m.session.busy);
-        h.button('memo-owner-prev','〈',sx,y+141,37,35);h.text(owner?.name??'',sx+sw/2,y+159,14,white,600,'center',sw-88);h.button('memo-owner-next','〉',sx+sw-37,y+141,37,35);
-        const mapX=split?x+w*.51:sx,mapY=split?y+91:y+184,mapW=split?w*.45:sw,mapH=split?p.h-158:Math.max(65,p.h-345);
+        const p=sheet(h,'메모',820,780),{x,y,w}=p,split=w>600&&p.compact,count=v.memoCapacity??0;
+        const left=x+24,toolsW=split?w*.39:w-48,gap=6,paged=!split&&toolsW<290&&v.playerCount>3,cols=split||paged?3:v.playerCount,ownerW=(toolsW-(paged?48:0)-gap*(cols-1))/cols,ownerH=split?44:64;
+        const owners=paged?v.players.slice(Math.floor(m.rule.memoOwner/3)*3,Math.floor(m.rule.memoOwner/3)*3+3):v.players;
+        owners.forEach((player,i)=>{
+            const xx=left+i%cols*(ownerW+gap),yy=y+80+Math.floor(i/cols)*(ownerH+gap),selected=player.seat===m.rule.memoOwner;
+            h.button(`memo-owner:${player.seat}`,'',xx,yy,ownerW,ownerH,false,m.session.busy);
+            if(selected){h.context.strokeStyle='#8bbce0';h.context.lineWidth=2;h.context.strokeRect(xx+3,yy+3,ownerW-6,ownerH-6);}
+            const portrait=split?23:32;h.imageAt(`portrait-${player.seat}`,xx+(ownerW-portrait)/2,yy+4,portrait,portrait*1.12);
+            h.text(player.name,xx+ownerW/2,yy+ownerH-9,split?8:9,selected?white:muted,600,'center',ownerW-8);
+        });
+        if(paged)h.button('memo-owner-page','›',left+toolsW-42,y+80,42,64);
+        const slotsY=y+(split?182:155),slotW=(toolsW-gap*(Math.max(1,count)-1))/Math.max(1,count);
+        for(let i=0;i<count;i++){const note=v.selfMemos?.[i],icon=!note?undefined:note.status==='safe'?'check':note.status==='mine'?'mine':'help';h.button(`memo-slot:${i}`,note?String(i+1):`+ ${i+1}`,left+i*(slotW+gap),slotsY,slotW,42,i===m.rule.memoSlot,m.session.busy,icon);}
+        const mapX=split?x+w*.46:left,mapY=split?y+80:y+213,mapW=split?w*.51:toolsW,mapH=split?p.h-124:p.h-397;
         diagram(h,m,mapX,mapY,mapW,mapH,{edge:m.rule.memoEdge,interactive:'memo-edge'});
-        const statusY=split?y+196:y+p.h-150,statusW=(sw-14)/3;
-        for(const [i,[id,label]]of([['safe','안전'],['mine','지뢰'],['unsure','미확인']]as const).entries())h.button(`memo-status:${id}`,label,sx+i*(statusW+7),statusY,statusW,35,m.rule.memoStatus===id);
-        h.text(m.rule.memoEdge?edgeLabel(m.rule.memoEdge):'그림에서 기록할 선로를 고르세요',sx,split?y+253:y+p.h-93,11,muted,500,'left',sw);
-        const bw=(sw-8)/2,by=split?y+p.h-60:y+p.h-59;
-        h.button('memo-delete','이 기록 삭제',sx,by,bw,40,false,m.session.busy||!v.selfMemos?.[m.rule.memoSlot]);h.button('memo-save','기록 저장',sx+bw+8,by,bw,40,true,m.session.busy||!m.rule.memoEdge||count===0);
+        const paletteY=split?y+234:y+p.h-130,paletteW=(toolsW-12)/3;
+        for(const [i,[id,label,icon]]of([['safe','안전','check'],['mine','지뢰','mine'],['unsure','미확인','help']]as const).entries())h.button(`memo-status:${id}`,label,left+i*(paletteW+6),paletteY,paletteW,44,m.rule.memoStatus===id,m.session.busy,icon);
+        if(m.rule.memoNode)h.text('연결할 분기점 선택',mapX+mapW/2,mapY+mapH+17,12,white,600,'center',mapW);
+        else if(m.rule.memoEdge)h.text(edgeLabel(m.rule.memoEdge),split?left:mapX+mapW/2,split?y+291:y+p.h-153,10,muted,500,split?'left':'center',toolsW);
+        const by=y+p.h-64;
+        h.iconButton('memo-undo','되돌리기','back',left,by,48,m.session.busy||!m.rule.memoUndo);
+        h.iconButton('memo-delete','이 메모 지우기','clear',left+59,by,48,m.session.busy||!v.selfMemos?.[m.rule.memoSlot]);
+        h.iconButton('close','닫기','check',x+w-76,by,48);
     }else if(m.overlay==='peek'){
         const p=sheet(h,'타인의 기억 · 훔쳐볼 메모 선택',650,650),{x,y,w}=p,targets=v.peekableMemos??[],limit=baseMemoSlots(v.playerCount),page=m.rule.rosterPage,rh=Math.min(68,(p.h-190)/5);
         h.text(`남은 횟수 ${m.session.self?.peeks??0}/2 · 한 번에 ${limit}개까지`,x+24,y+78,12,muted);

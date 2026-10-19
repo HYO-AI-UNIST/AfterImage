@@ -144,10 +144,11 @@ test('manual role selection is required before placement, permits duplicates and
       for (const key of ['coins', 'blessings', 'peeks', 'shifts']) assert.equal(key in player, false);
     }
   }
-  const changed = await act(0, { type: 'chooseRole', role: 'guardian' });
-  assert.equal(changed.view.players[0].role, 'guardian');
-  assert.equal(changed.view.players[0].coins, 3);
-  assert.equal(changed.view.players[0].blessings, 2);
+  await assert.rejects(act(0, { type: 'chooseRole', role: 'guardian' }), GameError);
+  const changed = await service.get(code, seats[0].token);
+  assert.equal(changed.view.players[0].role, 'illuminator');
+  assert.equal(changed.view.players[0].coins, 5);
+  assert.equal(changed.view.players[0].blessings, 0);
   const placed = await act(0, { type: 'place', mines: [mine] });
   const committed = storage.records.get(code)!.payload;
   assert.equal(placed.view.players[0].ready, true);

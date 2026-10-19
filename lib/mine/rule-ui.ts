@@ -11,14 +11,19 @@ export interface RuleUi {
     memoOwner: number;
     memoEdge: string | null;
     memoStatus: MemoStatus;
+    memoNode: string | null;
+    memoUndo: {slot:number;entry:import('../contracts').MemoEntry|null} | null;
     peekTargets: MemoTarget[];
     peekResult: PeekEntry[] | null;
     revealSeat: number;
     rosterPage: number;
     settings: RoomSettings;
     guideReturn: boolean;
+    scanAt: number;
+    scanAnchor?: {x:number;y:number} | null;
+    fx: {role: RoleId | 'hint' | 'memo'; title:string; actor:string; at:number; origin?:{x:number;y:number}} | null;
 }
-export const createRuleUi = (): RuleUi => ({role: 'illuminator', concealed: [], tool: 'mine', shiftFrom: null, shiftTo: null, memoSlot: 0, memoOwner: 0, memoEdge: null, memoStatus: 'unsure', peekTargets: [], peekResult: null, revealSeat: 0, rosterPage: 0, settings: {...DEFAULT_ROOM_SETTINGS}, guideReturn:false});
+export const createRuleUi = (): RuleUi => ({role: 'illuminator', concealed: [], tool: 'mine', shiftFrom: null, shiftTo: null, memoSlot: 0, memoOwner: 0, memoEdge: null, memoStatus: 'unsure', memoNode:null,memoUndo:null,peekTargets: [], peekResult: null, revealSeat: 0, rosterPage: 0, settings: {...DEFAULT_ROOM_SETTINGS}, guideReturn:false,scanAt:0,fx:null});
 export const turnKey = (v: RoomView | null) => v ? [v.code, v.selfId, v.round, v.phase, v.activeSeat, v.rotation, v.turnNumber, v.boardOwnerSeat, v.shiftSeat, v.blessingSeat].join(':') : '';
 export const choosingBoard = (v: RoomView) => v.phase === 'playing' && v.boardMode === 'choice' && v.boardOwnerSeat < 0 && v.shiftSeat === undefined && v.blessingSeat === undefined;
 export const ownShift = (v: RoomView) => v.shiftSeat !== undefined && v.players[v.shiftSeat]?.id === v.selfId;

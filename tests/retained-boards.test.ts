@@ -92,17 +92,19 @@ test('role changes cannot erase retained camouflage or add new camouflage to a r
   let state = applyAction(win(playing()), id(0), { type: 'nextRound' }, 5_000).state;
   const before = structuredClone(state.concealedBoards);
   for (const role of ['guardian', 'trapper', 'illuminator'] as RoleId[]) {
-    state = applyAction(state, id(0), { type: 'chooseRole', role }, 5_000).state;
-    assert.deepEqual(state.concealedBoards, before);
+    const chosen = applyAction(state, id(0), { type: 'chooseRole', role }, 5_000).state;
+    assert.deepEqual(chosen.concealedBoards, before);
   }
+  state = applyAction(state, id(0), { type: 'chooseRole', role: 'guardian' }, 5_000).state;
   state = applyAction(state, id(1), { type: 'chooseRole', role: 'trapper' }, 5_000).state;
   assert.throws(() => applyAction(state, id(1), { type: 'place', mines: [mines[1]], concealed: [concealed] }, 5_000), /기존 판/);
   state = applyAction(state, id(0), { type: 'ready' }, 5_000).state;
   assert.throws(() => applyAction(state, id(0), { type: 'chooseRole', role: 'trapper' }, 5_000), /완료한 뒤/);
   assert.throws(() => applyAction(state, id(0), { type: 'ready' }, 5_000), /이미 준비/);
+  const beforeMakerChoice = state;
   state = applyAction(state, id(2), { type: 'chooseRole', role: 'trapper' }, 5_000).state;
   assert.deepEqual(viewFor(state, id(2), 5_000).ownConcealed, [concealed]);
-  state = applyAction(state, id(2), { type: 'chooseRole', role: 'guardian' }, 5_000).state;
+  state = applyAction(beforeMakerChoice, id(2), { type: 'chooseRole', role: 'guardian' }, 5_000).state;
   assert.equal('ownConcealed' in viewFor(state, id(2), 5_000), false);
   assert.throws(() => applyAction(state, id(2), { type: 'place', mines: [mines[2]], concealed: [concealed] }, 5_000), /기만의 장막 능력/);
   state = applyAction(state, id(2), { type: 'place', mines: [mines[2]] }, 5_000).state;
