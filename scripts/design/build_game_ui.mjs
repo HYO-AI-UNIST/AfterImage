@@ -157,7 +157,7 @@ sprite('logo', 1000, 160, g => {
     g.fillStyle = '#ffffff'; g.fillText('MINDMINER', 500, 82);
 });
 const icons = ['hint', 'help', 'sound', 'muted', 'back', 'close', 'random', 'clear', 'check', 'link', 'pause', 'mine', 'compass'];
-for (let i = 1; i <= 5; i++)
+for (let i = 1; i <= 7; i++)
     sprite(`depot-${i}`, 64, 64, g => { shape(g, 4, 4, 56, 56, '#14181a', '#7b8788', 6, 2); g.font = 'bold 34px Menlo, monospace'; g.fillStyle = '#ffffff'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(String(i), 32, 34); });
 for (const name of icons)
     sprite(name, 64, 64, g => {
@@ -253,6 +253,16 @@ for (const name of icons)
             }
         }
     });
+for (const role of ['illuminator','guardian','trapper','thief','shifter','recorder']) sprite(`role-${role}`, 96, 96, g => {
+    shape(g,4,4,88,88,'#1a2329','#899ba6',12,2);g.strokeStyle='#ffffff';g.fillStyle='#ffffff';g.lineWidth=4;g.lineJoin='round';
+    if(role==='illuminator'){g.strokeRect(31,34,34,38);g.beginPath();g.arc(48,31,12,Math.PI,0);g.stroke();g.fillRect(42,42,12,23);}
+    if(role==='guardian'){g.beginPath();g.moveTo(48,23);g.lineTo(72,33);g.lineTo(66,58);g.lineTo(48,75);g.lineTo(30,58);g.lineTo(24,33);g.closePath();g.stroke();g.beginPath();g.moveTo(36,48);g.lineTo(45,57);g.lineTo(60,39);g.stroke();}
+    if(role==='trapper'){g.beginPath();g.moveTo(22,38);g.quadraticCurveTo(48,18,74,38);g.lineTo(68,64);g.lineTo(48,76);g.lineTo(28,64);g.closePath();g.stroke();g.fillRect(31,43,12,4);g.fillRect(53,43,12,4);}
+    if(role==='thief'){g.beginPath();g.moveTo(18,49);g.quadraticCurveTo(48,17,78,49);g.quadraticCurveTo(48,80,18,49);g.stroke();g.beginPath();g.arc(48,49,11,0,Math.PI*2);g.stroke();}
+    if(role==='shifter'){g.beginPath();g.moveTo(22,35);g.lineTo(70,35);g.lineTo(59,24);g.moveTo(70,35);g.lineTo(59,46);g.moveTo(74,63);g.lineTo(26,63);g.lineTo(37,52);g.moveTo(26,63);g.lineTo(37,74);g.stroke();}
+    if(role==='recorder'){g.strokeRect(27,23,44,54);for(let i=0;i<3;i++){g.fillRect(37,36+i*12,23,3);g.fillRect(21,32+i*16,12,3);}}
+});
+sprite('coin-victory',96,96,g=>{g.fillStyle='#56646d';g.beginPath();g.arc(48,51,34,0,Math.PI*2);g.fill();g.fillStyle='#d8dfe3';g.beginPath();g.arc(48,46,34,0,Math.PI*2);g.fill();g.fillStyle='#34414a';g.beginPath();g.arc(48,46,26,0,Math.PI*2);g.fill();g.fillStyle='#ffffff';g.beginPath();g.moveTo(48,25);g.lineTo(65,57);g.lineTo(31,57);g.closePath();g.fill();});
 writeFileSync(path.join(out, 'atlas.png'), atlas.toBuffer('image/png'));
 writeFileSync(path.join(out, 'atlas.json'), JSON.stringify(manifest, null, 2));
 const fx = path.join(root, 'public/game/fx');
@@ -284,7 +294,7 @@ for (const [name, r] of Object.entries(manifest)) {
     n++;
 }
 writeFileSync(path.join(out, 'asset-sheet.png'), overview.toBuffer('image/png'));
-writeFileSync(path.join(root, 'public/game/manifest.json'), JSON.stringify({ title: 'Quiet Mine / original game asset kit', models: ['miner-cart', 'timber-arch', 'lantern', 'supply-crate', 'cave-rock', 'mine-level', 'broken-track', 'main-menu-diorama'].map(n => `models/${n}.glb`), ui: 'ui/atlas.png', frames: 'ui/atlas.json', fx: ['fx/glow.png', 'fx/dust.png', 'fx/spark.png'], textures: ['shale', 'timber', 'iron', 'gravel', 'floor'].map(n => `textures/${n}.png`), levelLayout: 'lib/mine/level-layout.json', source: 'assets/source/quiet-mine-kit.blend', titleSource: 'assets/source/quiet-mine-title.blend', license: 'Original assets created for MindMiner; no third-party game artwork.' }, null, 2));
+writeFileSync(path.join(root, 'public/game/manifest.json'), JSON.stringify({ title: 'Quiet Mine / original game asset kit', models: ['miner-cart', 'timber-arch', 'lantern', 'supply-crate', 'cave-rock', 'mine-level', 'mine-level-3', 'mine-level-5', 'mine-level-6', 'broken-track', 'main-menu-diorama'].map(n => `models/${n}.glb`), ui: 'ui/atlas.png', frames: 'ui/atlas.json', fx: ['fx/glow.png', 'fx/dust.png', 'fx/spark.png'], textures: ['shale', 'timber', 'iron', 'gravel', 'floor'].map(n => `textures/${n}.png`), levelLayout: 'lib/mine/level-layout.json', source: 'assets/source/quiet-mine-kit.blend', titleSource: 'assets/source/quiet-mine-title.blend', license: 'Original assets created for MindMiner; no third-party game artwork.' }, null, 2));
 console.log(`Built ${Object.keys(manifest).length} PNG UI sprites, atlas, effects, and asset sheet.`);
 // Quiet, illustrated material maps. Seeded strokes keep the low-poly silhouettes clean.
 const textureOut = path.join(root, 'public/game/textures');

@@ -1,5 +1,8 @@
 import type { ApiReply, GameAction, GameState, Player } from './contracts';
-import { addPlayer, advanceTime, applyAction, createRoom, GameError, viewFor } from './game.ts';
+import { addPlayer, advanceTime, applyAction, createRoom, GameError, upgradeWaitingRoom, viewFor } from './game.ts';
+import { DEFAULT_ROOM_SETTINGS, isValidRoomSettings } from './settings.ts';
+import { ROLE_IDS } from './roles.ts';
+import type { RoleId } from './contracts';
 
 const ROOM_TTL = 24 * 60 * 60 * 1000;
 const TOUCH_INTERVAL = 60 * 1000;
@@ -33,7 +36,7 @@ export interface RoomStorage {
 
 interface PrivateRoom {
   state: GameState;
-  // A possession token can resume exactly one seat. Raw tokens never reach D1.
+  // A possession token can resume exactly one participant. Raw tokens never reach D1.
   identities: Record<string, string>;
 }
 
@@ -106,14 +109,26 @@ function validName(name: unknown): string {
   return trimmed;
 }
 
-function newPlayer(name: string, seat: number): Player {
-  return { id: crypto.randomUUID(), name, seat, score: 0, coins: 3, ready: false };
+function newPlayer(name: string, seat: number, coins = DEFAULT_ROOM_SETTINGS.hintCoins): Player {
+  return { id: crypto.randomUUID(), name, seat, score: 0, coins, ready: false };
 }
 
 function unpack(record: RoomRecord): PrivateRoom {
   try {
     const room = JSON.parse(record.payload) as PrivateRoom;
     if (room.state.code !== record.code || !Array.isArray(room.state.players) || !room.identities || typeof room.identities !== 'object') throw new Error();
+    // Existing rooms predate configurable settings. Fill only absent fields;
+    // preserve live turns, accumulated scores, remaining coins, and round count.
+    room.state.playerCount ??= DEFAULT_ROOM_SETTINGS.playerCount;
+    room.state.hintCoins ??= DEFAULT_ROOM_SETTINGS.hintCoins;
+    room.state.gridSize ??= DEFAULT_ROOM_SETTINGS.gridSize;
+    room.state.spectators ??= [];
+    room.state = upgradeWaitingRoom(room.state);
+    // Upgrade old rooms at a round boundary, never during an active attempt.
+    if (['waiting', 'roundEnd', 'finished'].includes(room.state.phase)) room.state.rolesEnabled ??= true;
+    if (room.state.phase === 'placing') {
+      room.state.placementRevision ??= room.state.revision - room.state.players.filter((player) => player.ready).length;
+    }
     return room;
   } catch {
     throw new RoomError('방 정보를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.', 503);
@@ -126,7 +141,7 @@ function recordFor(room: PrivateRoom, version: number, now: number): RoomRecord 
 
 function playerFor(room: PrivateRoom, hash: string): string {
   const playerId = room.identities[hash];
-  if (!playerId || !room.state.players.some((player) => player.id === playerId)) throw new RoomError('이 방의 참가 정보가 없어요. 다시 입장해 주세요.', 401);
+  if (!playerId || ![...room.state.players, ...room.state.spectators].some((player) => player.id === playerId)) throw new RoomError('이 방의 참가 정보가 없어요. 다시 입장해 주세요.', 401);
   return playerId;
 }
 
@@ -172,7 +187,7 @@ export class RoomService {
       const now = this.now();
       const record = await this.load(code, now);
       const room = unpack(record);
-      const player = { ...newPlayer(name, room.state.players.length), id: playerId };
+      const player = { ...newPlayer(name, room.state.players.length, room.state.hintCoins), id: playerId };
       room.state = addPlayer(room.state, player);
       room.identities[hash] = player.id;
       if (await this.storage.compareAndSwap(recordFor(room, record.version + 1, now), record.version)) {
@@ -210,17 +225,35 @@ export class RoomService {
       const playerId = playerFor(room, hash);
       const previousState = room.state;
       room.state = advanceTime(previousState, now);
-      // Placement commits are independent: each participant can commit exactly
-      // once in a placement phase. Every accepted commit adds one ready player
-      // and one revision, so this lower bound identifies this phase without a
-      // separate round token. Never rebase a hint or a prior round's placement.
-      const readyCount = room.state.players.filter((player) => player.ready).length;
-      const canRebasePlacement = action.type === 'place'
+      // Placement commits are independent within one placement phase. Its
+      // starting revision also tolerates audience arrivals between commits,
+      // while never accepting a previous round's placement or stale hint.
+      const placementRevision = room.state.placementRevision
+        ?? room.state.revision - room.state.players.filter((player) => player.ready).length;
+      const actor = room.state.players.find((player) => player.id === playerId);
+      const canRebasePlacement = (action.type === 'place' || action.type === 'ready' || action.type === 'chooseRole')
         && room.state.phase === 'placing'
-        && room.state.players.some((player) => player.id === playerId && !player.ready)
-        && revision >= room.state.revision - readyCount
+        && actor && !actor.ready
+        && revision >= placementRevision
+        && revision >= (actor.roleRevision ?? placementRevision)
         && revision <= room.state.revision;
-      if (room.state.revision !== revision && !canRebasePlacement) {
+      // Notes target explicit boards and edges, so another player's turn or
+      // note edit does not invalidate them. Preserve round and owner ordering:
+      // a delayed save must never overwrite that owner's newer notes.
+      const canRebaseMemo = action.type === 'memo'
+        && room.state.phase === 'playing'
+        && actor
+        && revision >= (room.state.placementRevision ?? room.state.revision)
+        && revision >= (actor.roleRevision ?? room.state.placementRevision ?? room.state.revision)
+        && revision >= (actor.memoRevision ?? room.state.revision)
+        && revision <= room.state.revision;
+      // Private note writes should not interrupt another player's pending
+      // move, hint or ability. Peek reads those notes, so it still requires an
+      // exact revision to avoid charging for a selection that changed.
+      const canRebaseOverMemos = action.type !== 'memo' && action.type !== 'peek'
+        && revision >= (room.state.actionRevision ?? room.state.revision)
+        && revision <= room.state.revision;
+      if (room.state.revision !== revision && !canRebasePlacement && !canRebaseMemo && !canRebaseOverMemos) {
         // A delayed animation transition must be committed even when this
         // client's action is stale. The client refreshes before trying again.
         if (room.state !== previousState && !await this.storage.compareAndSwap(recordFor(room, record.version + 1, now), record.version)) continue;
@@ -229,7 +262,7 @@ export class RoomService {
       const result = applyAction(room.state, playerId, action, now);
       room.state = result.state;
       if (await this.storage.compareAndSwap(recordFor(room, record.version + 1, now), record.version)) {
-        return { view: viewFor(room.state, playerId, now), ...(result.privateResult ? { privateResult: result.privateResult } : {}) };
+        return { view: viewFor(room.state, playerId, now), ...(result.privateResult ? { privateResult: result.privateResult } : {}), ...(result.peekResult ? { peekResult: result.peekResult } : {}) };
       }
     }
     throw new RoomError('다른 행동을 처리 중이에요. 화면을 갱신한 뒤 다시 시도해 주세요.', 409);
@@ -248,15 +281,65 @@ function onlyKeys(value: Record<string, unknown>, keys: string[]): void {
 export function parseAction(input: unknown): GameAction {
   const value = objectInput(input);
   switch (value.type) {
+    case 'settings': {
+      onlyKeys(value, ['type', 'settings']);
+      const settings = objectInput(value.settings);
+      onlyKeys(settings, ['playerCount', 'hintCoins', 'totalRounds', 'gridSize']);
+      if (!isValidRoomSettings(settings)) throw new RoomError('인원 2~6명, 힌트 0~10개, 라운드 1~20회, 그리드 3~6등분으로 설정해 주세요.');
+      return { type: 'settings', settings: { playerCount: settings.playerCount, hintCoins: settings.hintCoins, totalRounds: settings.totalRounds, gridSize: settings.gridSize } };
+    }
+    case 'seat':
+      onlyKeys(value, ['type', 'playerId', 'seated']);
+      if (typeof value.playerId !== 'string' || !value.playerId.trim() || value.playerId.length > 200 || typeof value.seated !== 'boolean') throw new RoomError('자리 변경 정보를 확인해 주세요.');
+      return { type: 'seat', playerId: value.playerId, seated: value.seated };
     case 'start':
+    case 'ready':
     case 'nextRound':
     case 'restart':
       onlyKeys(value, ['type']);
       return { type: value.type };
+    case 'chooseRole':
+      onlyKeys(value, ['type', 'role']);
+      if (typeof value.role !== 'string' || !ROLE_IDS.includes(value.role as RoleId)) throw new RoomError('사용할 특수 능력을 선택해 주세요.');
+      return { type: 'chooseRole', role: value.role as RoleId };
+    case 'chooseBoard':
+      onlyKeys(value, ['type', 'ownerSeat']);
+      if (!Number.isInteger(value.ownerSeat) || (value.ownerSeat as number) < 0 || (value.ownerSeat as number) >= DEFAULT_ROOM_SETTINGS.playerCount) throw new RoomError('도전할 판을 선택해 주세요.');
+      return { type: 'chooseBoard', ownerSeat: value.ownerSeat as number };
     case 'place':
-      onlyKeys(value, ['type', 'mines']);
-      if (!Array.isArray(value.mines) || value.mines.length > 26 || value.mines.some((edge) => typeof edge !== 'string' || edge.length > 32) || new Set(value.mines).size !== value.mines.length) throw new RoomError('지뢰 배치를 확인해 주세요.');
-      return { type: 'place', mines: value.mines as string[] };
+      onlyKeys(value, ['type', 'mines', 'concealed']);
+      if (!Array.isArray(value.mines) || value.mines.length > 57 || value.mines.some((edge) => typeof edge !== 'string' || edge.length > 32) || new Set(value.mines).size !== value.mines.length) throw new RoomError('지뢰 배치를 확인해 주세요.');
+      if (value.concealed !== undefined && (!Array.isArray(value.concealed) || value.concealed.length > 4 || value.concealed.some(edge => typeof edge !== 'string' || edge.length < 1 || edge.length > 32) || new Set(value.concealed).size !== value.concealed.length)) throw new RoomError('판독을 막을 선분은 최대 4개까지 선택해 주세요.');
+      return { type: 'place', mines: value.mines as string[], ...(value.concealed === undefined ? {} : { concealed: value.concealed as string[] }) };
+    case 'memo': {
+      onlyKeys(value, ['type', 'slot', 'entry']);
+      if (!Number.isInteger(value.slot) || (value.slot as number) < 0 || (value.slot as number) > 5) throw new RoomError('메모 칸을 선택해 주세요.');
+      if (value.entry === null) return { type: 'memo', slot: value.slot as number, entry: null };
+      const entry = objectInput(value.entry);
+      onlyKeys(entry, ['boardOwnerId', 'edgeId', 'status']);
+      if (typeof entry.boardOwnerId !== 'string' || !entry.boardOwnerId || entry.boardOwnerId.length > 200 || typeof entry.edgeId !== 'string' || !entry.edgeId || entry.edgeId.length > 32 || !['safe', 'mine', 'unsure'].includes(entry.status as string)) throw new RoomError('메모할 판, 선분과 상태를 선택해 주세요.');
+      return { type: 'memo', slot: value.slot as number, entry: { boardOwnerId: entry.boardOwnerId, edgeId: entry.edgeId, status: entry.status as 'safe' | 'mine' | 'unsure' } };
+    }
+    case 'peek': {
+      onlyKeys(value, ['type', 'targets']);
+      if (!Array.isArray(value.targets) || value.targets.length < 1 || value.targets.length > 3) throw new RoomError('훔쳐볼 메모를 선택해 주세요.');
+      const targets = value.targets.map(target => {
+        const entry = objectInput(target);
+        onlyKeys(entry, ['playerId', 'slot']);
+        if (typeof entry.playerId !== 'string' || !entry.playerId || entry.playerId.length > 200 || !Number.isInteger(entry.slot) || (entry.slot as number) < 0 || (entry.slot as number) > 5) throw new RoomError('훔쳐볼 메모를 확인해 주세요.');
+        return { playerId: entry.playerId, slot: entry.slot as number };
+      });
+      return { type: 'peek', targets };
+    }
+    case 'blessing':
+      onlyKeys(value, ['type', 'use']);
+      if (typeof value.use !== 'boolean') throw new RoomError('가호 사용 여부를 선택해 주세요.');
+      return { type: 'blessing', use: value.use };
+    case 'shiftMine':
+      onlyKeys(value, ['type', 'fromEdgeId', 'toEdgeId']);
+      if (value.fromEdgeId === undefined && value.toEdgeId === undefined) return { type: 'shiftMine' };
+      if (typeof value.fromEdgeId !== 'string' || !value.fromEdgeId || value.fromEdgeId.length > 32 || typeof value.toEdgeId !== 'string' || !value.toEdgeId || value.toEdgeId.length > 32) throw new RoomError('옮길 지뢰와 도착 선분을 선택해 주세요.');
+      return { type: 'shiftMine', fromEdgeId: value.fromEdgeId, toEdgeId: value.toEdgeId };
     case 'spawn':
     case 'move':
       onlyKeys(value, ['type', 'nodeId']);

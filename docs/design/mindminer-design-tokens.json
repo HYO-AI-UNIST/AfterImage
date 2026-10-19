@@ -103,14 +103,17 @@
     "press": 80,
     "turnIntroProposed": 900,
     "safeMoveCurrent": 650,
-    "explosionCurrent": 1800,
-    "rotationCurrent": 1400,
+    "explosionCurrent": 4000,
+    "legacyRotation": 1400,
     "stageSpotlight": 850,
     "boardFlight": 2100,
     "boardShuffle": 2800
   },
   "world": {
-    "camera": "automatic orthographic; carousel board flight and directed explosion shot",
+    "camera": "automatic orthographic; selected opponent table flight and directed explosion shot",
+    "gridSizes": [3, 4, 5, 6],
+    "defaultGridSize": 4,
+    "geometryCountsBelow": "default 4-division map; other sizes use shared board-layout.ts",
     "junctionRows": [
       1,
       2,

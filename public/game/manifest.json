@@ -7,6 +7,9 @@
     "models/supply-crate.glb",
     "models/cave-rock.glb",
     "models/mine-level.glb",
+    "models/mine-level-3.glb",
+    "models/mine-level-5.glb",
+    "models/mine-level-6.glb",
     "models/broken-track.glb",
     "models/main-menu-diorama.glb"
   ],

@@ -1,5 +1,7 @@
 # MindMiner · Quiet Mine
 
+> 아래 플레이 설명은 이전 `game` 규칙의 기록입니다. `game-newrule`의 최신 흐름·능력·판 유지 규칙과 구현 검증은 [규칙 병합 문서](docs/game/newrule-merge-plan.md)를 참고하세요.
+
 기억으로 출구를 찾는 6인 온라인 보드게임입니다. `game` 브랜치에서는 세미 레트로 컨셉을 바탕으로 실제 3D 갱도, 광부 수레, 이미지 에셋 HUD로 플레이합니다. 혼자서는 봇 5명과 즉시 탐험할 수 있습니다.
 
 [기준 컨셉](docs/concepts/mindminer-semi-retro-v4.png) · [게임 화면](docs/game/gameplay-desktop.png) · [모바일 화면](docs/game/gameplay-mobile.png) · [3D 에셋 시트](docs/game/3d-asset-kit.png) · [UI 에셋 시트](public/game/ui/asset-sheet.png)

@@ -1,6 +1,6 @@
 import { createDemo, demoAction, tickDemo, DEMO_SELF_ID } from '../demo';
 import { viewFor } from '../game';
-import type { ApiReply, GameAction, GameState, PrivateResult, RoomView } from '../contracts';
+import type { ApiReply, GameAction, GameState, RoomView } from '../contracts';
 type Membership = {
     code: string;
     token: string;
@@ -155,7 +155,7 @@ export class MineSession {
         if (g === this.generation && !this.disposed)
             this.timer = setTimeout(() => void this.poll(g), this.view?.phase === 'playing' ? 350 : 1000);
     }
-    async act(action: GameAction): Promise<PrivateResult | undefined> {
+    async act(action: GameAction): Promise<Pick<ApiReply, 'privateResult' | 'peekResult'> | undefined> {
         if (!this.view || this.busy)
             return;
         this.busy = true;
@@ -167,7 +167,7 @@ export class MineSession {
                 const reply = demoAction(this.state, action, Date.now());
                 this.state = reply.state;
                 this.accept(viewFor(reply.state, DEMO_SELF_ID));
-                return reply.privateResult;
+                return {privateResult: reply.privateResult, peekResult: reply.peekResult};
             }
             if (!this.member)
                 return;
@@ -180,7 +180,7 @@ export class MineSession {
             if (!response.ok)
                 throw new Error(reply.error ?? '잠시 후 다시 시도해주세요.');
             this.accept(reply.view);
-            return reply.privateResult;
+            return {privateResult: reply.privateResult, peekResult: reply.peekResult};
         }
         catch (e) {
             if (g === this.generation)

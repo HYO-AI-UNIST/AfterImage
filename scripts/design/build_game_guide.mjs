@@ -119,16 +119,16 @@ sprite('hint', g => {
     g.fillStyle = '#ffffff'; g.font = 'bold 23px Menlo'; g.fillText('-1', 562, 403);
 });
 sprite('turns', g => {
-    for (let i = 0; i < 6; i++) { const a = -Math.PI / 2 + i * Math.PI / 3, x = 400 + Math.cos(a) * 244, y = 210 + Math.sin(a) * 145; board(g, x, y - 40, .28, {cart: '3-1'}); arrow(g, 400 + Math.cos(a + .52) * 247, 210 + Math.sin(a + .52) * 151, a + .52 + Math.PI, .5); }
-    g.fillStyle = '#ffffff'; g.font = 'bold 64px Menlo'; g.textAlign = 'center'; g.fillText('6', 400, 226);
-    g.font = 'bold 15px Menlo'; g.fillText('NEXT MINE', 400, 260);
+    for (let i = 0; i < 3; i++) {
+        g.fillStyle=i===1?'#273640':'#131b21';g.fillRect(78+i*232,76,196,270);g.strokeStyle=i===1?'#ffffff':'#63717a';g.lineWidth=i===1?3:1;g.strokeRect(78+i*232,76,196,270);
+        board(g,176+i*232,127,.43);cart(g,176+i*232,310,.55);
+    }
+    arrow(g,408,378,0,.9);
 });
 sprite('scoring', g => {
-    glow(g, 400, 240, 200); ellipse(g, 400, 329, 110, 35, '#080b0e'); ellipse(g, 400, 307, 110, 35, '#71848f'); ellipse(g, 400, 299, 104, 29, '#202b32');
-    cart(g, 400, 265, 2.2);
-    const beam = g.createLinearGradient(0, 0, 0, 310); beam.addColorStop(0, '#d8e7ed2a'); beam.addColorStop(1, '#d8e7ed00'); g.fillStyle = beam; g.beginPath(); g.moveTo(370, 0); g.lineTo(430, 0); g.lineTo(540, 310); g.lineTo(260, 310); g.closePath(); g.fill();
-    g.fillStyle = '#ffffff'; g.font = 'bold 44px Menlo'; g.textAlign = 'center'; g.fillText('1', 214, 156); g.fillText('+', 292, 156); g.fillText('=', 505, 156); g.fillText('3 pt', 618, 156);
-    coin(g, 374, 139, .95); coin(g, 425, 139, .95);
+    glow(g,570,235,160);cart(g,230,239,2);cart(g,570,239,2);
+    arrow(g,400,217,Math.PI/2,1.1);coin(g,400,157,1.25);
+    g.fillStyle='#ffffff';g.font='bold 40px Menlo';g.textAlign='center';g.fillText('3 → 2',230,347);g.fillText('3 → 4',570,347);
 });
 sprite('controls', g => {
     board(g, 550, 88, .83, {cart: '2-1'});
@@ -136,6 +136,17 @@ sprite('controls', g => {
     g.beginPath(); g.roundRect(223, 143, 98, 170, 13); g.fill(); g.stroke(); line(g, [246, 158], [298, 158], '#b7c4ca', 3); ellipse(g, 271, 226, 15, 15, '#d7e1e5');
     for (let i = 0; i < 3; i++) { g.fillStyle = '#29363f'; g.fillRect(92 + i * 57, 329, 48, 44); g.strokeRect(92 + i * 57, 329, 48, 44); g.fillStyle = '#ffffff'; g.font = 'bold 22px Menlo'; g.textAlign = 'center'; g.fillText(['H', 'R', 'M'][i], 116 + i * 57, 360); }
 });
+sprite('retained',g=>{
+    board(g,200,95,.73,{mines:['2-1~3-2','3-0~4-0']});board(g,590,95,.73,{mines:['1-1~2-2','3-2~4-3']});
+    g.strokeStyle='#a8b9c1';g.lineWidth=3;g.strokeRect(53,60,294,305);g.strokeStyle='#ffffff';g.strokeRect(443,60,294,305);
+    arrow(g,590,385,0,.65);g.fillStyle='#ffffff';g.font='bold 27px Menlo';g.textAlign='center';g.fillText('−1',590,44);
+});
+sprite('illuminator',g=>{board(g,280,70,.85);for(let i=0;i<5;i++)coin(g,550+(i%2)*66,115+Math.floor(i/2)*85,1.15);});
+sprite('guardian',g=>{board(g,290,70,.86,{cart:'4-1'});cloud(g,266,219,.8);arrow(g,540,224,Math.PI,.9);cart(g,650,306,1.2);coin(g,583,122,1);coin(g,650,122,1);});
+sprite('trapper',g=>{const p=board(g,380,60,1.08);for(const id of ['1-0','2-1','3-1','3-3']){const [x,y]=p(id);glow(g,x,y,42);g.fillStyle='#ffffff';g.font='bold 32px Menlo';g.textAlign='center';g.fillText('?',x,y-12);}});
+sprite('thief',g=>{board(g,247,80,.78);g.fillStyle='#19232a';g.fillRect(493,104,203,225);g.strokeStyle='#b4c4cc';g.lineWidth=3;g.strokeRect(493,104,203,225);for(let i=0;i<3;i++)line(g,[518,147+i*53],[670,147+i*53],i===1?'#ffffff':'#60707a',3);g.setLineDash([7,5]);line(g,[475,204],[337,204],'#c5d5dd',3);g.setLineDash([]);arrow(g,405,262,-Math.PI/2,.9);});
+sprite('shifter',g=>{const p=board(g,400,64,1.06);const a=p('2-1'),b=p('3-1'),c=p('2-2'),d=p('3-3');mine(g,(a[0]+b[0])/2,(a[1]+b[1])/2,.8);glow(g,(c[0]+d[0])/2,(c[1]+d[1])/2,45);arrow(g,445,238,Math.PI/2,.9);g.fillStyle='#ffffff';g.font='bold 25px Menlo';g.textAlign='center';g.fillText('7',660,101);});
+sprite('recorder',g=>{for(let i=0;i<4;i++){const x=90+(i%2)*337,y=60+Math.floor(i/2)*176;g.fillStyle='#1c272e';g.fillRect(x,y,280,140);g.strokeStyle='#b1c2ca';g.lineWidth=2;g.strokeRect(x,y,280,140);board(g,x+91,y+19,.32);g.fillStyle='#ffffff';g.font='bold 25px Menlo';g.fillText(String(i+1),x+228,y+80);}});
 writeFileSync(path.join(out, 'manifest.json'), JSON.stringify(art, null, 2));
 const manifestPath = path.join(root, 'public/game/manifest.json');
 if (existsSync(manifestPath)) {

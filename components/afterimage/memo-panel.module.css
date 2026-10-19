@@ -1,0 +1,66 @@
+.panel { min-width: 0; padding-top: 20px; border-top: 1px solid var(--line); scroll-margin-top: 20px; }
+.heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.heading h2 { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 550; }
+.heading > span { color: var(--muted); font-family: var(--font-mono); font-size: 12px; }
+.note, .footnote { color: var(--muted); font-size: 12px; line-height: 1.7; }
+.note { margin-top: 9px; }
+.footnote { margin-top: 10px; }
+.availability { margin-top: 10px; padding: 9px 10px; border-left: 2px solid var(--input-border); background: var(--surface-muted); color: var(--muted); font-size: 12px; line-height: 1.7; }
+.slots { margin-top: 13px; border-top: 1px solid var(--line); }
+.slot { width: 100%; min-height: 63px; display: flex; align-items: center; gap: 10px; padding: 11px 2px; border-bottom: 1px solid var(--line); background: transparent; text-align: left; color: var(--foreground); }
+.slot:hover:not(:disabled) { background: var(--surface-hover); }
+.slot:disabled { opacity: 1; cursor: default; }
+.slotNumber { color: var(--muted); font: 11px var(--font-mono); }
+.slotContent { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 2px; }
+.slotContent strong { font-size: 13px; font-weight: 500; overflow-wrap: anywhere; }
+.slotContent small { color: var(--muted); font-size: 10px; }
+.statusMark { flex-shrink: 0; width: 26px; height: 26px; border: 1px dashed var(--muted); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+.empty { flex: 1; color: var(--muted); font-size: 12px; }
+.peekAbility { margin-top: 18px; }
+.peekAbility button span { margin-left: auto; color: var(--muted); font-size: 12px; }
+.editor, .peekDialog { width: min(560px, calc(100vw - 24px)); }
+.editor.editor { max-height: calc(100dvh - 24px); overflow: hidden; }
+.editor[open] { display: flex; flex-direction: column; }
+.editor > :global(.modal-heading), .editor > h2 { flex-shrink: 0; }
+.editorContent { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-right: 4px; }
+.editorControls { flex-shrink: 0; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.intro { margin-top: 10px; color: var(--muted); font-size: 13px; line-height: 1.8; }
+.ownerSelect { display: flex; gap: 12px; align-items: center; justify-content: space-between; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+.ownerSelect > span { flex-shrink: 0; color: var(--muted); font-size: 12px; }
+.ownerSelect select { max-width: 68%; min-height: 38px; border: 1px solid var(--input-border); border-radius: 2px; padding: 6px 10px; color: var(--foreground); background: var(--panel); font-size: 13px; }
+.editorBoard { margin: 10px auto 0; max-width: 420px; }
+.editorBoard :global(.game-board) { width: 100%; margin: 0; }
+.selectedEdge { min-height: 22px; color: var(--muted); font-size: 12px; text-align: center; }
+.statuses { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
+.statuses button { display: flex; align-items: center; justify-content: center; gap: 9px; min-height: 44px; padding: 8px; border: 1px solid var(--line); background: transparent; color: var(--muted); font-size: 13px; }
+.statuses button span { font-size: 16px; }
+.statuses button[aria-pressed='true'] { border-color: var(--accent-border); background: var(--accent-soft); color: var(--accent); }
+.editorActions { display: flex; justify-content: space-between; gap: 12px; margin-top: 12px; }
+.editorActions button { flex: 1; min-height: 44px; }
+.peekPlayers { display: grid; gap: 18px; margin: 20px 0; }
+.peekPlayers fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+.peekPlayers legend { width: 100%; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 7px; font-size: 14px; overflow-wrap: anywhere; }
+.peekPlayers legend span { flex-shrink: 0; color: var(--muted); font-size: 11px; }
+.peekPlayers fieldset > div { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.peekPlayers button { min-height: 42px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 11px; border: 1px solid var(--line); background: transparent; color: var(--muted); font-size: 12px; }
+.peekPlayers button[aria-pressed='true'] { border-color: var(--accent-border); background: var(--accent-soft); color: var(--accent); }
+.peekDialog > :global(.button) { margin-top: 18px; }
+.resultHeading { margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.resultHeading strong { font-size: 14px; font-weight: 500; overflow-wrap: anywhere; }
+.resultStatus { font-size: 12px; color: var(--muted); }
+.resultPaging { display: flex; justify-content: center; align-items: center; gap: 24px; margin-top: 8px; }
+.resultPaging > span { color: var(--muted); font: 12px var(--font-mono); }
+.resultWarning { margin: 18px 0; color: var(--muted); font-size: 12px; text-align: center; line-height: 1.8; }
+@media (max-width: 480px) {
+  .editor.editor { width: calc(100% - 20px); max-height: calc(100dvh - 20px); padding: 16px; }
+  .editor > :global(.modal-heading) { margin-bottom: 10px; padding-bottom: 8px; }
+  .editorControls { margin-top: 8px; padding-top: 8px; }
+  .slotContent strong { font-size: 14px; }
+  .slotContent small { font-size: 12px; }
+  .empty { font-size: 14px; }
+  .ownerSelect { align-items: flex-start; flex-direction: column; gap: 6px; }
+  .ownerSelect select { width: 100%; max-width: 100%; min-height: 44px; font-size: 16px; }
+  .peekPlayers fieldset > div { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .statuses { gap: 6px; }
+  .statuses button { gap: 6px; }
+}

@@ -1,0 +1,165 @@
+.reveal {
+  min-width: 0;
+  margin: 0 0 28px;
+  text-align: left;
+}
+.heading h2 {
+  color: var(--foreground);
+  font-size: 16px;
+  font-weight: 550;
+  letter-spacing: -.3px;
+}
+.heading p {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.8;
+}
+.owners {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 18px;
+  margin: 16px 0 0;
+  border-top: 1px solid var(--line);
+}
+.owners button {
+  --owner-color: var(--player-color-light);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 42px;
+  padding: 9px 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: left;
+}
+.owners button:hover { color: var(--foreground); }
+.owners button[aria-pressed='true'] {
+  border-bottom-color: var(--owner-color);
+  color: var(--owner-color);
+}
+.seat {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--owner-color);
+  border-radius: 50%;
+  flex-shrink: 0;
+  color: var(--owner-color);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-weight: 500;
+}
+.owners small {
+  flex-shrink: 0;
+  font-size: 9px;
+}
+.board {
+  --owner-color: var(--player-color-light);
+  min-width: 0;
+  padding: 0 18px 15px;
+  border: 1px solid var(--line);
+  border-top: 2px solid var(--owner-color);
+  background: var(--panel);
+}
+.boardHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 43px;
+  border-bottom: 1px solid var(--line);
+}
+.boardHeading h3 {
+  min-width: 0;
+  color: var(--foreground);
+  font-size: 12px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.boardHeading h3 span {
+  margin-left: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 400;
+}
+.count {
+  flex-shrink: 0;
+  color: var(--muted);
+  font-size: 10px;
+  white-space: nowrap;
+}
+.count b {
+  margin-left: 5px;
+  color: var(--foreground);
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 400;
+}
+.board :global(.game-board) {
+  width: 100%;
+  max-width: 550px;
+  margin: 12px auto 0;
+}
+.legend {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px 22px;
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 10px;
+}
+.legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.mineMark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 13px;
+  height: 13px;
+  border: 1px solid var(--danger);
+  border-radius: 50%;
+  color: var(--danger);
+  font-size: 13px;
+  font-style: normal;
+  line-height: 1;
+}
+.safeMark {
+  width: 17px;
+  height: 2px;
+  background: var(--owner-color);
+}
+:global(:root[data-theme='dark']) .owners button,
+:global(:root[data-theme='dark']) .board {
+  --owner-color: var(--player-color-dark);
+}
+.note {
+  margin-top: 9px;
+  color: var(--muted);
+  font-size: 10px;
+  text-align: left;
+}
+@media (max-width: 480px) {
+  .owners { gap: 0 16px; }
+  .owners button { min-height: 44px; }
+  .board { padding: 0 10px 12px; }
+  .boardHeading { gap: 10px; min-height: 39px; }
+  .legend { gap: 10px 16px; }
+}

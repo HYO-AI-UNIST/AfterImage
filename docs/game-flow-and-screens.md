@@ -1,6 +1,6 @@
 # MindMiner 게임 플로우와 화면 단위 분석
 
-> 이 문서는 초기 2D 화면의 분석 기록이다. 현재 3D 버전과 원본 코드의 흐름·조작 비교는 [게임 흐름 검토](game/flow-audit.md)를 참고한다. 최신 검토에서는 README를 규칙 근거로 사용하지 않았다.
+> 이 문서는 초기 2D 화면의 분석 기록이다. 최신 3D 게임의 규칙은 [main 병합 전후 흐름 비교](game/newrule-merge-plan.md)를 참고한다. [이전 3D 게임 검토](game/flow-audit.md)도 병합 전의 기록이다. README는 규칙 근거로 사용하지 않았다.
 
 > 분석 기준: 현재 저장소의 UI와 게임 상태 구현 (`app/page.tsx`, `components/mindminer/`, `lib/game.ts`, `lib/demo.ts`, `lib/contracts.ts`). 이 문서는 현행 동작을 기록한다. 향후 게임 화면 재설계의 출발점으로 사용한다.
 

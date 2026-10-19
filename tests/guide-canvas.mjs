@@ -1,6 +1,8 @@
 import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
+import { GUIDE_PAGES } from '../lib/mine/guide.ts';
+import { getBoard, randomBoard } from '../lib/game.ts';
 
 const base = process.env.MINDMINER_URL || 'http://127.0.0.1:5173';
 const output = new URL('../outputs/qa/guide/', import.meta.url);
@@ -53,11 +55,11 @@ try {
         await page.locator('canvas[data-ready="true"]').waitFor({timeout: 45000});
         await control(page, 'help'); await chapter(page, 0);
         assert.equal(await page.locator('button,h1,[role="button"]').count(), 0);
-        for (let i = 0; i < 8; i++) {
+        for (let i = 0; i < GUIDE_PAGES.length; i++) {
             await control(page, `guide:${i}`); await chapter(page, i);
             const controls = await page.locator('canvas').evaluate(c => JSON.parse(c.dataset.controls));
             assert.ok(controls.every(r => r.x >= 0 && r.y >= 0 && r.x + r.w <= width && r.y + r.h <= height), 'Guide controls fit the viewport');
-            if (i === 0 || i === 4 || i === 7) await shot(page, `${name}-${i}`);
+            if (i === 0 || i === 4 || i === GUIDE_PAGES.length-1) await shot(page, `${name}-${i}`);
         }
         await page.keyboard.press('Home'); await chapter(page, 0);
         if (name === 'mobile') {
@@ -70,8 +72,8 @@ try {
             await touch.detach();
         }
         await page.keyboard.press('ArrowRight'); await chapter(page, 1);
-        await page.keyboard.press('End'); await chapter(page, 7);
-        await page.setViewportSize({width: height, height: width}); await chapter(page, 7);
+        await page.keyboard.press('End'); await chapter(page, GUIDE_PAGES.length-1);
+        await page.setViewportSize({width: height, height: width}); await chapter(page, GUIDE_PAGES.length-1);
         await page.waitForFunction(() => window.hudUploadedSize?.[0] === Math.round(innerWidth * Math.min(devicePixelRatio, 1.5)) && window.hudUploadedSize?.[1] === Math.round(innerHeight * Math.min(devicePixelRatio, 1.5)));
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
         if (name === 'small') {
@@ -89,6 +91,7 @@ try {
             // Placement and hint selection both work with keyboard edge targets.
             await page.keyboard.press('ArrowRight'); await page.keyboard.press('Enter');
             await control(page, 'clear'); await control(page, 'ready');
+            await control(page, 'board:1');
             await page.waitForFunction(() => document.querySelector('canvas').dataset.cinematic === '');
             await control(page, 'hint');
             await page.keyboard.press('ArrowRight'); await page.keyboard.press('Enter');
@@ -97,19 +100,22 @@ try {
             await control(page, 'close');
             await control(page, 'hint'); // Cancel without spending the second coin.
             await page.keyboard.press('Escape');
-            await page.keyboard.press('5');
-            await page.waitForFunction(() => document.querySelector('canvas').dataset.position === '4-4');
-            const next = await page.locator('canvas').evaluate(c => JSON.parse(c.dataset.nodes)['3-3']);
+            const geometry=getBoard(),mine=randomBoard(()=>.42).map(id=>geometry.edgeLookup.get(id)).find(e=>geometry.nodes.find(n=>n.id===e.b)?.start);
+            assert.ok(mine,'Fixed demo has a mine beside a departure station');
+            const start=geometry.nodes.find(n=>n.id===mine.b).start?mine.b:mine.a, destination=start===mine.a?mine.b:mine.a;
+            await page.keyboard.press(String(Number(start.split('-')[1])+1));
+            await page.waitForFunction(id => document.querySelector('canvas').dataset.position === id,start);
+            const next = await page.locator('canvas').evaluate((c,id) => JSON.parse(c.dataset.nodes)[id],destination);
             await page.mouse.click(next.x, next.y);
             await page.waitForFunction(() => document.querySelector('canvas').dataset.event === 'explosion');
             await page.keyboard.press('F1'); await chapter(page, 2);
             const pausedRevision = await page.locator('canvas').getAttribute('data-revision');
-            await page.waitForTimeout(2200);
+            await page.waitForTimeout(4300);
             assert.equal(await page.locator('canvas').getAttribute('data-revision'), pausedRevision, 'Solo bots wait while the guide is open');
         }
         assert.deepEqual(await page.evaluate(() => window.hudUploadMismatches), [], 'Canvas uploads always match allocated GPU storage');
         await context.close();
-        console.log(`PASS ${name}: eight illustrated chapters, navigation, resize and raster UI.`);
+        console.log(`PASS ${name}: ${GUIDE_PAGES.length} illustrated chapters, navigation, resize and raster UI.`);
     }
     assert.deepEqual(errors, [], 'No browser, shader or asset errors');
     console.log('PASS keyboard placement and hints, private hint maps in landscape, and guide assets.');

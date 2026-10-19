@@ -1,5 +1,5 @@
 {
-  "name": "mindminer",
+  "name": "afterimage",
   "version": "0.1.0",
   "private": true,
   "engines": {
@@ -9,7 +9,7 @@
     "game:db": "node scripts/game-db.mjs",
     "assets:ui": "node scripts/design/build_game_ui.mjs",
     "assets:3d": "node scripts/build-game-models.mjs",
-    "test:game": "node tests/game-canvas.mjs",
+    "test:game": "node tests/game-newrule-canvas.mjs",
     "install:ci": "node scripts/install-ci.mjs",
     "dev": "node scripts/run-framework.mjs dev",
     "build": "node scripts/run-framework.mjs build",
@@ -19,7 +19,7 @@
     "test": "node --test --test-isolation=none tests/*.test.ts",
     "typecheck": "tsc --noEmit",
     "db:local": "node scripts/game-db.mjs",
-    "test:browser": "node tests/game-canvas.mjs",
+    "test:browser": "node tests/game-newrule-canvas.mjs",
     "assets:fx": "node scripts/design/build_explosion_fx.mjs"
   },
   "dependencies": {

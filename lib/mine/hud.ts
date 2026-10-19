@@ -1,10 +1,12 @@
 import * as THREE from 'three';
-import { EDGES, NODES, hasSafePath } from '../game';
+import { getBoard } from '../game';
 import type { PrivateResult } from '../contracts';
 import type { MineSession } from './session';
-import layout from './level-layout.json';
+import { boardPosition } from './board-layout';
+import type { RuleUi } from './rule-ui';
+import { ruleGame, ruleLobby, ruleOverlay, transferResults, RULE_OVERLAYS } from './rule-hud';
 import { GUIDE_PAGES, guidePage } from './guide';
-export type Overlay = 'entry' | 'help' | 'pause' | 'leave' | 'hint' | 'assets' | null;
+export type Overlay = 'entry' | 'help' | 'pause' | 'leave' | 'hint' | 'assets' | 'roles' | 'memos' | 'peek' | 'peek-result' | 'settings' | 'roster' | 'reveal' | null;
 export interface HudModel {
     session: MineSession;
     draft: string[];
@@ -25,6 +27,7 @@ export interface HudModel {
     pressed: string | null;
     routes: Array<{ id: string; x: number; y: number; angle: number; hot: boolean }>;
     cinematic: { progress: number; kind: 'turn' | 'shuffle'; seat: number } | null;
+    rule: RuleUi;
     guidePage: number;
     guideScroll: number;
 }
@@ -84,7 +87,7 @@ export class MineHud {
         }
     }
     hit(x: number, y: number) { return [...this.regions].reverse().find(r => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h); }
-    private imageAt(name: string, x: number, y: number, w: number, h: number, alpha = 1) {
+    imageAt(name: string, x: number, y: number, w: number, h: number, alpha = 1) {
         const f = this.frames[name];
         if (!f || !this.loaded)
             return;
@@ -94,7 +97,7 @@ export class MineHud {
         g.drawImage(this.image, f.x, f.y, f.w, f.h, x, y, w, h);
         g.restore();
     }
-    private frame(name: string, x: number, y: number, w: number, h: number, alpha = 1) {
+    frame(name: string, x: number, y: number, w: number, h: number, alpha = 1) {
         const f = this.frames[name];
         if (!f || !this.loaded)
             return;
@@ -110,7 +113,7 @@ export class MineHud {
             }
         g.restore();
     }
-    private text(s: string, x: number, y: number, size = 14, color = C.white, weight = 500, align: CanvasTextAlign = 'left', max?: number) {
+    text(s: string, x: number, y: number, size = 14, color = C.white, weight = 500, align: CanvasTextAlign = 'left', max?: number) {
         const g = this.context;
         g.fillStyle = color;
         g.font = `${weight} ${size}px ${/^[\x00-\x7F]*$/.test(s) ? 'Menlo, monospace' : 'Pretendard, sans-serif'}`;
@@ -121,7 +124,7 @@ export class MineHud {
         else
             g.fillText(s, x, y);
     }
-    private wrap(s: string, x: number, y: number, width: number, size = 14, color = C.muted, lh = 23) {
+    wrap(s: string, x: number, y: number, width: number, size = 14, color = C.muted, lh = 23) {
         const g = this.context;
         g.font = `500 ${size}px Pretendard, sans-serif`;
         let row = '', yy = y;
@@ -138,7 +141,7 @@ export class MineHud {
             this.text(row, x, yy, size, color);
         return yy + lh;
     }
-    private button(id: string, label: string, x: number, y: number, w: number, h = 46, primary = false, disabled = false, icon?: string) {
+    button(id: string, label: string, x: number, y: number, w: number, h = 46, primary = false, disabled = false, icon?: string) {
         const hover = this.model?.hover === id || this.model?.focus === id;
         const pressed = !disabled && this.model?.pressed === id;
         const lift = pressed ? 3 : hover && !disabled ? -2 : 0;
@@ -149,8 +152,8 @@ export class MineHud {
             this.text(label, x + w / 2 + (icon ? 9 : 0), y + lift + h / 2, w < 100 ? 12 : primary ? 15 : 14, disabled ? C.muted : primary ? C.coal : C.white, 700, 'center', w - 20);
         this.regions.push({ id, label: label || icon || id, x, y, w, h, disabled });
     }
-    private scrim(alpha = .78) { this.context.fillStyle = `rgba(2,4,6,${alpha})`; this.context.fillRect(0, 0, this.width, this.height); }
-    private panel(title: string, w: number, h: number) {
+    scrim(alpha = .78) { this.context.fillStyle = `rgba(2,4,6,${alpha})`; this.context.fillRect(0, 0, this.width, this.height); }
+    panel(title: string, w: number, h: number) {
         h = Math.min(h, this.height - 92);
         this.scrim();
         const x = (this.width - w) / 2, y = Math.max(74, (this.height - h) / 2);
@@ -187,7 +190,7 @@ export class MineHud {
             if (!m.overlay && !m.cinematic) this.directions(m, time);
             this.chrome(m, mobile || w < 1000);
             if (v.phase === 'waiting')
-                this.lobby(m, mobile);
+                this.lobby(m);
             else if (v.phase === 'roundEnd' || v.phase === 'finished')
                 this.results(m, mobile, time);
             else
@@ -211,6 +214,7 @@ export class MineHud {
             this.hint(m);
         if (m.overlay === 'assets')
             this.assets();
+        if (m.overlay && RULE_OVERLAYS.includes(m.overlay)) ruleOverlay(this, m);
         if (m.session.error || m.session.connection) {
             const msg = m.session.error || m.session.connection, ww = Math.min(w - 32, 630);
             this.frame('panel', (w - ww) / 2, mobile ? 80 : 91, ww, 50);
@@ -218,8 +222,9 @@ export class MineHud {
         }
         if (m.toast) {
             const ww = Math.min(w - 32, 510);
-            this.frame('panel-private', (w - ww) / 2, Math.max(80, h - 192), ww, 44);
-            this.text(m.toast, w / 2, Math.max(80, h - 192) + 22, 12, C.white, 500, 'center', ww - 26);
+            const toastY = Math.max(80, h - (m.overlay ? 56 : 192));
+            this.frame('panel-private', (w - ww) / 2, toastY, ww, 44);
+            this.text(m.toast, w / 2, toastY + 22, 12, C.white, 500, 'center', ww - 26);
         }
         this.texture.needsUpdate = true;
     }
@@ -296,7 +301,7 @@ export class MineHud {
             this.text(v.phase === 'placing' ? '지뢰 배치' : `${v.players[v.activeSeat]?.name}의 차례`, w/2, 91, 13, C.white, 700, 'center');
             return;
         }
-        const cw = mobile ? (w - 30) / 6 : Math.min(112, (w - 300) / 6), gap = mobile ? 0 : 8, total = cw * 6 + gap * 5, sx = (w - total) / 2, sy = mobile ? 83 : 88;
+        const cw = mobile ? (w - 30) / v.playerCount : Math.min(112, (w - 300) / v.playerCount), gap = mobile ? 0 : 8, total = cw * v.playerCount + gap * (v.playerCount - 1), sx = (w - total) / 2, sy = mobile ? 83 : 88;
         for (const p of v.players) {
             const x = sx + p.seat * (cw + gap), active = v.phase === 'playing' && p.seat === v.activeSeat, ww = cw - (mobile ? 4 : 0);
             if (active) {
@@ -306,97 +311,29 @@ export class MineHud {
             else
                 this.frame('panel', x, sy, ww, mobile ? 60 : 53, .82);
             this.imageAt(`portrait-${p.seat}`, x + (mobile ? (ww - 32) / 2 : 5), sy + 3, mobile ? 32 : 36, mobile ? 36 : 41);
+            if (p.role) {
+                this.imageAt(`role-${p.role}`, x + ww - 18, sy + 3, 16, 16);
+                this.regions.push({id:`player-role:${p.seat}`,label:`${p.name}의 능력`,x,y:sy,w:ww,h:mobile?60:53,disabled:false});
+            }
             if (mobile)
                 this.text(p.name, x + ww / 2, sy + 48, 9, active ? C.white : C.muted, 600, 'center', ww - 5);
             else {
                 this.text(p.name, x + 48, sy + 17, 12, active ? C.white : C.white, 600, 'left', ww - 51);
-                this.text(v.phase === 'placing' ? (p.ready ? '준비 완료' : '배치 중') : `${p.score} pt`, x + 48, sy + 36, 10, C.muted, 400, 'left', ww - 51);
+                this.text(v.phase === 'placing' ? (p.ready ? '준비 완료' : '배치 중') : `${p.score} 코인`, x + 48, sy + 36, 10, C.muted, 400, 'left', ww - 51);
             }
             if (v.phase === 'placing' && p.ready)
                 this.imageAt('check', x + ww - 15, sy + 2, 13, 13);
         }
         const owner = v.players.find(p => p.seat === v.boardOwnerSeat);
-        this.text(v.phase === 'placing' ? '나의 갱도 · 비공개' : `${owner?.name ?? ''}의 갱도`, w / 2, mobile ? 166 : 163, 12, v.phase === 'placing' ? C.white : C.muted, 500, 'center');
+        this.text(v.phase === 'placing' ? '나의 갱도 · 비공개' : owner ? `${owner.name}의 갱도` : '상대 판 선택 대기', w / 2, mobile ? 166 : 163, 12, v.phase === 'placing' ? C.white : C.muted, 500, 'center');
         this.text(`ROUND ${String(v.round).padStart(2, '0')} / ${String(v.totalRounds).padStart(2, '0')}`, mobile ? 17 : 42, mobile ? 165 : 103, mobile ? 9 : 11, C.muted, 500);
         if (!mobile)
-            this.text(`전달 ${String(v.rotation).padStart(2, '0')}`, w - 44, 103, 10, C.muted, 500, 'right');
+            this.text(v.boardMode === 'choice' ? `차례 ${v.turnNumber ?? 1}` : `전달 ${String(v.rotation).padStart(2, '0')}`, w - 44, 103, 10, C.muted, 500, 'right');
     }
-    private game(m: HudModel, mobile: boolean, time: number) {
-        const w = this.width, h = this.height, v = m.session.view!, self = m.session.self!, place = v.phase === 'placing', mine = m.session.ownTurn;
-        const bw = Math.min(w - 28, 790), x = (w - bw) / 2, boxH = h < 560 ? mobile ? 118 : 96 : mobile ? 154 : 111, y = h - boxH - (mobile ? 18 : 25);
-        this.frame(mine || place ? 'panel-light' : 'panel', x, y, bw, boxH);
-        const t = place ? (self.ready ? '당신의 갱도가 준비됐어요' : '수렛길에 지뢰를 배치하세요') : v.event?.type === 'explosion' ? '폭발한 위치를 기억하세요' : v.event?.type === 'rotation' ? '판을 왼쪽으로 전달합니다' : mine ? (m.hintMode ? '확인할 선로를 고르세요' : v.position ? '연결된 분기점으로 이동하세요' : '출발역을 선택하세요') : `${v.players[v.activeSeat]?.name}의 탐험을 지켜보세요`;
-        this.text(t, x + 21, y + 29, mobile ? 17 : 20, C.white, 700, 'left', mobile ? bw - 38 : bw - 220);
-        const desc = place ? self.ready ? '모두 준비하면 탐험이 시작됩니다.' : hasSafePath(m.draft) ? '탈출 승강기까지 안전한 길이 남아 있어요.' : '탈출 승강기까지 가는 길을 남겨주세요.' : m.hintMode ? '힌트는 나에게만 보이고, 코인 하나를 사용해요.' : v.event ? '잠시 후 다음 탐험이 이어집니다.' : '지나간 길은 사라져도, 기억은 남습니다.';
-        if (!(h < 560 && mobile)) this.text(desc, x + 21, y + 56, mobile ? 10 : 12, place && !hasSafePath(m.draft) ? C.danger : C.muted, 400, 'left', mobile ? bw - 36 : bw - 220);
-        if (place) {
-            this.text(`${self.ready ? v.ownMines?.length ?? 0 : m.draft.length}개 설치  ·  ${v.players.filter(p => p.ready).length}/6 준비`, x + 21, y + (mobile ? h < 560 ? 51 : 80 : 80), 11, C.muted);
-            const yy = mobile ? y + (h < 560 ? 64 : 101) : y + 30;
-            this.button('random', '', mobile ? x + 16 : x + bw - 265, yy, 44, 44, false, self.ready || m.session.busy, 'random');
-            this.button('clear', '', mobile ? x + 70 : x + bw - 213, yy, 44, 44, false, self.ready || m.session.busy, 'clear');
-            this.button('ready', self.ready ? '준비 완료' : '이 배치로 출발', mobile ? x + 126 : x + bw - 158, yy, mobile ? bw - 142 : 139, 44, true, self.ready || !hasSafePath(m.draft) || m.session.blocked);
-        }
-        else {
-            const coins = self.coins ?? 0;
-            for (let i = 0; i < 3; i++)
-                this.imageAt('hint', x + 20 + i * 26, y + (mobile ? h < 560 ? 46 : 76 : 68), 20, 20, i < coins ? 1 : .18);
-            this.text(`${coins} / 3`, x + 109, y + (mobile ? h < 560 ? 57 : 87 : 79), 11, C.muted);
-            this.button('hint', m.hintMode ? '선택 취소' : '힌트 사용 −1', mobile ? x + 18 : x + bw - 187, mobile ? y + (h < 560 ? 65 : 104) : y + 30, mobile ? bw - 36 : 166, 44, true, !mine || m.session.blocked || (!m.hintMode && coins <= 0));
-        }
-        const turnAge = time - m.turnAt;
-        if (mine && !place && !m.cinematic && turnAge < 1500 && !m.overlay && turnAge > 0) {
-            const a = Math.min(1, turnAge / 250, (1500 - turnAge) / 350);
-            this.context.save();
-            this.context.globalAlpha = Math.max(0, a);
-            this.text('YOUR TURN', w / 2, mobile ? h * .29 : h * .28, mobile ? 27 : 39, C.white, 700, 'center');
-            this.context.restore();
-        }
-    }
-    private lobby(m: HudModel, mobile: boolean) {
-        const w = Math.min(this.width - 28, 608), h = mobile ? 550 : 568, x = (this.width - w) / 2, y = Math.max(85, (this.height - h) / 2), v = m.session.view!;
-        if (this.height < 600) {
-            const hh = this.height - 96, yy = 80;
-            this.frame('panel', x, yy, w, hh);
-            this.text('원정대 대기실', x + 20, yy + 27, 20, C.white, 700);
-            this.text(`${v.players.length}/6`, x + w - 24, yy + 27, 14, C.white, 700, 'right');
-            this.text(v.code, x + 22, yy + 72, 25, C.white, 700);
-            this.button('copy', '초대 링크', x + w - 151, yy + 52, 128, 38, false, false, 'link');
-            const gap = 8, cw = (w - 48 - gap * 2) / 3, rh = (hh - 187) / 2;
-            for (let i = 0; i < 6; i++) {
-                const xx=x+24+i%3*(cw+gap), cy=yy+111+Math.floor(i/3)*rh, player=v.players.find(p => p.seat===i);
-                this.frame('panel-light',xx,cy,cw,rh-5,.9);
-                if (player) { this.imageAt(`portrait-${i}`,xx+8,cy+6,23,26); this.text(player.name,xx+39,cy+20,11,C.white,600,'left',cw-45); }
-                else this.text('빈 자리',xx+cw/2,cy+(rh-5)/2,11,C.muted,500,'center');
-            }
-            if (m.session.host) this.button('start','탐험 시작하기',x+24,yy+hh-61,w-48,44,true,v.players.length!==6||m.session.blocked);
-            else this.text('방장의 출발을 기다립니다.',x+w/2,yy+hh-37,12,C.muted,500,'center');
-            return;
-        }
-        this.frame('panel', x, y, w, h);
-        this.text('원정대를 기다리는 중', x + w / 2, y + 40, mobile ? 23 : 28, C.white, 700, 'center');
-        this.text(`${v.players.length} / 6명 합류`, x + w / 2, y + 73, 12, C.muted, 400, 'center');
-        this.text(v.code, x + w / 2, y + 115, 30, C.white, 700, 'center');
-        this.button('copy', '초대 링크 복사', x + w / 2 - 90, y + 143, 180, 42, false, false, 'link');
-        const gap = 10, cw = (w - 48 - gap * 2) / 3;
-        for (let i = 0; i < 6; i++) {
-            const xx = x + 24 + (i % 3) * (cw + gap), yy = y + 211 + Math.floor(i / 3) * 119, p = v.players.find(p => p.seat === i);
-            this.frame('panel-light', xx, yy, cw, 107, .8);
-            if (p) {
-                this.imageAt(`portrait-${i}`, xx + cw / 2 - 20, yy + 10, 40, 45);
-                this.text(p.name, xx + cw / 2, yy + 71, 12, C.white, 600, 'center', cw - 12);
-                this.text(p.id === v.hostId ? '방장' : '합류 완료', xx + cw / 2, yy + 92, 10, C.muted, 400, 'center');
-            }
-            else {
-                this.text('+', xx + cw / 2, yy + 38, 29, C.muted, 400, 'center');
-                this.text('빈 자리', xx + cw / 2, yy + 78, 11, C.muted, 400, 'center');
-            }
-        }
-        if (m.session.host)
-            this.button('start', '탐험 시작하기', x + 24, y + h - 68, w - 48, 46, true, v.players.length !== 6 || m.session.blocked);
-        else
-            this.text('방장이 탐험을 시작하기를 기다립니다.', x + w / 2, y + h - 42, 12, C.muted, 500, 'center');
-    }
+    private game(m: HudModel, mobile: boolean, time: number) { ruleGame(this, m, time); }
+    private lobby(m: HudModel) { ruleLobby(this, m); }
     private results(m: HudModel, mobile: boolean, time: number) {
+        if (m.session.view?.scoringMode === 'transfer') { transferResults(this, m, time); return; }
         const v = m.session.view!, final = v.phase === 'finished', g = this.context;
         const age = Math.max(0, time - m.resultAt), reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
         const progress = (start: number, duration: number) => reduce ? 1 : Math.max(0, Math.min(1, (age - start) / duration));
@@ -585,13 +522,14 @@ export class MineHud {
         this.text('당신만의 단서', x + 25, y + 34, 23, C.white, 700);
         this.button('close', '', x + w - 56, y + 12, 40, 40, false, false, 'close');
         const textCenter = x + (short ? w * .27 : w / 2);
-        this.text('나에게만 보이는 답', textCenter, y + (short ? 113 : 79), 11, C.muted, 500, 'center');
-        this.text(m.hint.mined ? '지뢰가 있어요' : '지뢰가 없어요', textCenter, y + (short ? 151 : 115), short ? 23 : 27, m.hint.mined ? C.danger : C.white, 700, 'center');
+        this.text(m.hint.mined === null ? '기만의 장막 · 코인 1개 사용' : '나에게만 보이는 답', textCenter, y + (short ? 113 : 79), 11, C.muted, 500, 'center');
+        this.text(m.hint.mined === null ? '판독 불가' : m.hint.mined ? '지뢰가 있어요' : '지뢰가 없어요', textCenter, y + (short ? 151 : 115), short ? 23 : 27, m.hint.mined ? C.danger : C.white, 700, 'center');
         const center = short ? x + w * .75 : x + w / 2, top = y + (short ? 91 : 156);
         const scale = Math.max(1, Math.min((short ? w * .4 : w - 90) / 14.4, (h - (short ? 218 : 282)) / 12.47));
-        const pts = new Map(NODES.map(n => { const [px, pz] = layout.nodes[n.id as keyof typeof layout.nodes]; return [n.id, { x: center + px * scale, y: top + (pz + 7.2) * scale }]; }));
+        const geometry = getBoard(m.session.view?.gridSize ?? 4);
+        const pts = new Map(geometry.nodes.map(n => { const [px, pz] = boardPosition(n.id, m.session.view?.gridSize ?? 4); return [n.id, { x: center + px * scale, y: top + (pz + 7.2) * scale }]; }));
         const g = this.context;
-        for (const e of EDGES) {
+        for (const e of geometry.edges) {
             const a = pts.get(e.a)!, b = pts.get(e.b)!;
             g.beginPath();
             g.moveTo(a.x, a.y);

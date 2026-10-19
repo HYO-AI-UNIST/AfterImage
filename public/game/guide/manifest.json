@@ -6,5 +6,12 @@
   "hint": "guide/hint.png",
   "turns": "guide/turns.png",
   "scoring": "guide/scoring.png",
-  "controls": "guide/controls.png"
+  "controls": "guide/controls.png",
+  "retained": "guide/retained.png",
+  "illuminator": "guide/illuminator.png",
+  "guardian": "guide/guardian.png",
+  "trapper": "guide/trapper.png",
+  "thief": "guide/thief.png",
+  "shifter": "guide/shifter.png",
+  "recorder": "guide/recorder.png"
 }

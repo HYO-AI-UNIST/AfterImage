@@ -2,12 +2,13 @@
 
 blender --background --python scripts/design/build_game_models.py
 """
-import bpy, math, random, json
+import bpy, math, random, json, os
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[2]
 OUT=ROOT/'public/game/models'; OUT.mkdir(parents=True,exist_ok=True)
 SOURCE=ROOT/'assets/source'; SOURCE.mkdir(parents=True,exist_ok=True)
+GRID=int(os.environ.get('MINDMINER_GRID','4'))
 bpy.ops.object.select_all(action='SELECT'); bpy.ops.object.delete(use_global=False)
 bpy.context.preferences.filepaths.save_version=0
 def material(name,color,emission=0):
@@ -38,6 +39,10 @@ def cylinder(name,loc,radius,depth,mat,vertices=12,rotation=(0,0,0)):
 def ico(name,loc,scale,mat):
     bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1,radius=1,location=loc);o=add(bpy.context.object,mat,name);o.scale=scale;return o
 def export(name):
+    if GRID!=4 and name!='mine-level':
+        root=bpy.data.objects.new(name,None);bpy.context.collection.objects.link(root)
+        for o in objects:o.parent=root
+        objects.clear();return root
     bpy.ops.object.select_all(action='DESELECT')
     for o in objects:o.select_set(True)
     bpy.context.view_layer.objects.active=objects[0]
@@ -65,8 +70,9 @@ def export(name):
         bpy.ops.object.select_all(action='DESELECT')
         for o in objects:o.select_set(True)
         bpy.context.view_layer.objects.active=objects[0]
-    bpy.ops.export_scene.gltf(filepath=str(OUT/f'{name}.building.glb'),export_format='GLB',use_selection=True,export_yup=True,export_materials='EXPORT',export_cameras=False,export_lights=False)
-    (OUT/f'{name}.building.glb').replace(OUT/f'{name}.glb')
+    output_name=f'{name}-{GRID}' if GRID!=4 else name
+    bpy.ops.export_scene.gltf(filepath=str(OUT/f'{output_name}.building.glb'),export_format='GLB',use_selection=True,export_yup=True,export_materials='EXPORT',export_cameras=False,export_lights=False)
+    (OUT/f'{output_name}.building.glb').replace(OUT/f'{output_name}.glb')
     root=bpy.data.objects.new(name,None);bpy.context.collection.objects.link(root)
     for o in objects:o.parent=root
     objects.clear();return root
@@ -121,6 +127,7 @@ export('cave-rock')
 # Blender coordinates are X/Y floor, Z height; export maps +Z to WebGL +Y.
 random.seed(319)
 layout=json.loads((ROOT/'lib/mine/level-layout.json').read_text())['nodes']
+if GRID!=4:layout={f'{r}-{c}':[(c-r/2)*14.4/GRID,-7.2+r*12.4707658145/GRID] for r in range(GRID+1) for c in range(r+1)}
 def node(row,col):
     x,z=layout[f'{row}-{col}'];return (x,-z)
 def slab(name,polygon,top,bottom,mat):
@@ -149,12 +156,12 @@ def beam(name,a,b,width,depth,mat):
     o=box(name,mid,(width,depth,(Vector(b)-Vector(a)).length),mat)
     o.rotation_euler=(Vector(b)-Vector(a)).to_track_quat('Z','Y').to_euler();return o
 # Railway ballast is individually laid, with retaining stones along the beds.
-for row in range(5):
+for row in range(GRID+1):
     for col in range(row+1):
         a=node(row,col)
         destinations=[]
         if col<row:destinations.append(node(row,col+1))
-        if row<4:destinations.extend([node(row+1,col),node(row+1,col+1)])
+        if row<GRID:destinations.extend([node(row+1,col),node(row+1,col+1)])
         for b in destinations:
             beam('Crushed-stone track bed',(*a,-.08),(*b,-.08),.82,.16,gravel)
             dx,dy=b[0]-a[0],b[1]-a[1];length=math.hypot(dx,dy);nx,ny=-dy/length,dx/length
@@ -163,7 +170,7 @@ for row in range(5):
                     x=a[0]+dx*t+nx*side*.52;y=a[1]+dy*t+ny*side*.52
                     o=box('Retaining block',(x,y,-.12),(.35,.23,.12),rock);o.rotation_euler.z=math.atan2(dy,dx)
 # Rails are carried over the open fault by steel girders and diagonal trusses.
-for row in range(4):
+for row in range(GRID):
     for col in range(row+1):
         a=node(row,col)
         for b in [node(row+1,col),node(row+1,col+1)]:
@@ -198,8 +205,8 @@ for x in [-10.5,-8.6]:beam('Winch tower',(x,5.1,.15),(x,5.1,3.2),.18,.22,iron)
 beam('Winch crosshead',(-10.8,5.1,3.2),(-8.3,5.1,3.2),.2,.2,rim)
 beam('Cross-canyon cable',(-9.6,5.1,3.1),(9.8,7.5,2.1),.035,.035,iron)
 # Entrance apron and five deliberate departure stations, each with a ramp.
-for i in range(5):
-    x,y=node(4,i)
+for i in range(GRID+1):
+    x,y=node(GRID,i)
     box('Departure platform',(x,y-.45,.06),(2.25,1.8,.20),wood)
     for k in range(6):box('Deck plank seam',(x-.94+k*.37,y-.45,.168),(.025,1.76,.015),black)
     for side in [-1,1]:box('Station marker post',(x+side*.96,y-.95,.55),(.12,.12,.85),iron)
@@ -233,6 +240,9 @@ for side in [-1,1]:
         ico('Side cliff',(x,y,.7),(1.1,1.5,1.7),rock)
         beam('Copper ore seam',(x-side*.9,y-.5,.5),(x-side*.8,y+.7,1.3),.055,.09,ore)
 levelroot=export('mine-level')
+if GRID!=4:
+    bpy.ops.wm.save_as_mainfile(filepath=str(SOURCE/f'quiet-mine-level-{GRID}.blend'))
+    raise SystemExit(0)
 
 # Four torn rail ends, visibly lifted toward the blast fracture.
 for side in [-1,1]:
