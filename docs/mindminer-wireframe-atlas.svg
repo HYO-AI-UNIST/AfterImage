@@ -1,0 +1,210 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2220" height="3070" viewBox="0 0 2220 3070">
+  <title>MindMiner — 게임 화면 와이어프레임 초안</title>
+  <desc>Figma에서 편집할 수 있는 8개 화면 단위의 게임 플로우 아틀라스. 홈, 대기실, 지뢰 배치, 내 차례, 관전, 라운드 결과, 최종 결과, 모달.</desc>
+  <defs>
+    <style>
+      text { font-family: Inter, Pretendard, "Apple SD Gothic Neo", sans-serif; }
+      .title { fill:#f1f1e9; font-size:31px; font-weight:700; }
+      .subtitle { fill:#aeb9b2; font-size:14px; }
+      .flow { fill:#17211d; stroke:#34443b; stroke-width:1; }
+      .flowtext { fill:#e8eee9; font-size:13px; font-weight:600; }
+      .flowhint { fill:#9eaba3; font-size:11px; }
+      .boardtitle { fill:#dfe8e1; font-size:18px; font-weight:700; }
+      .boardmeta { fill:#a8b5ac; font-size:12px; }
+      .viewport { fill:#111815; stroke:#35443c; stroke-width:1; }
+      .topbar { fill:#19231e; }
+      .navtext { fill:#cad4cd; font-size:12px; }
+      .label { fill:#aab7af; font-size:11px; letter-spacing:.7px; font-weight:700; }
+      .h1 { fill:#f0f0e8; font-size:28px; font-weight:700; }
+      .h2 { fill:#ecf0e9; font-size:18px; font-weight:700; }
+      .body { fill:#c0cbc3; font-size:13px; }
+      .small { fill:#98a79d; font-size:11px; }
+      .tiny { fill:#9ba89f; font-size:9px; }
+      .accent { fill:#8bd0ad; }
+      .gold { fill:#e4c77d; }
+      .danger { fill:#ed8975; }
+      .panel { fill:#1b2621; stroke:#34443b; stroke-width:1; }
+      .panel2 { fill:#202d26; stroke:#3b4e42; stroke-width:1; }
+      .card { fill:#202c25; stroke:#405247; stroke-width:1; }
+      .line { stroke:#3a4a40; stroke-width:1; }
+      .softline { stroke:#536459; stroke-width:1; }
+      .btn { fill:#8bd0ad; }
+      .btntxt { fill:#14221a; font-size:12px; font-weight:700; }
+      .ghost { fill:#26332b; stroke:#526358; stroke-width:1; }
+      .ghosttxt { fill:#d2ddd5; font-size:11px; font-weight:600; }
+      .node { fill:#d5e3d8; stroke:#15221b; stroke-width:2; }
+      .startnode { fill:#8bd0ad; stroke:#15221b; stroke-width:2; }
+      .goalnode { fill:#e4c77d; stroke:#3f3925; stroke-width:2; }
+      .edge { stroke:#8ca394; stroke-width:3; stroke-linecap:round; }
+      .edgeDim { stroke:#43584a; stroke-width:3; stroke-linecap:round; }
+      .edgeMine { stroke:#ed8975; stroke-width:4; stroke-linecap:round; }
+      .edgeActive { stroke:#e4c77d; stroke-width:5; stroke-linecap:round; }
+      .tag { fill:#25352b; stroke:#40594a; stroke-width:1; }
+      .tagtext { fill:#b9d8c4; font-size:10px; font-weight:700; }
+      .caption { fill:#dce5de; font-size:15px; font-weight:700; }
+      .captionsub { fill:#9eaba3; font-size:11px; }
+      .number { fill:#101713; font-size:11px; font-weight:700; }
+      .overlay { fill:#08100c; fill-opacity:.72; }
+    </style>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#8bd0ad"/></marker>
+    <g id="miniBoard">
+      <path d="M520 68L320 432L720 432Z" fill="#202d26" stroke="#53685a" stroke-width="2"/>
+      <g class="edgeDim">
+        <path d="M520 68L420 159M520 68L620 159M420 159L320 250M420 159L520 250M620 159L520 250M620 159L720 250M320 250L320 342M320 250L420 342M520 250L420 342M520 250L620 342M720 250L620 342M720 250L720 342M320 342L320 432M320 342L420 432M420 342L420 432M420 342L520 432M620 342L520 432M620 342L620 432M720 342L620 432M720 342L720 432"/>
+      </g>
+      <g class="node">
+        <circle cx="520" cy="68" r="9" class="goalnode"/><circle cx="420" cy="159" r="6"/><circle cx="620" cy="159" r="6"/>
+        <circle cx="320" cy="250" r="6"/><circle cx="520" cy="250" r="6"/><circle cx="720" cy="250" r="6"/>
+        <circle cx="320" cy="342" r="6"/><circle cx="420" cy="342" r="6"/><circle cx="520" cy="342" r="6"/><circle cx="620" cy="342" r="6"/><circle cx="720" cy="342" r="6"/>
+        <circle cx="320" cy="432" r="7" class="startnode"/><circle cx="420" cy="432" r="7" class="startnode"/><circle cx="520" cy="432" r="7" class="startnode"/><circle cx="620" cy="432" r="7" class="startnode"/><circle cx="720" cy="432" r="7" class="startnode"/>
+      </g>
+      <text x="520" y="40" text-anchor="middle" class="small">정상</text>
+      <text x="320" y="461" text-anchor="middle" class="tiny">1</text><text x="420" y="461" text-anchor="middle" class="tiny">2</text><text x="520" y="461" text-anchor="middle" class="tiny">3</text><text x="620" y="461" text-anchor="middle" class="tiny">4</text><text x="720" y="461" text-anchor="middle" class="tiny">5</text>
+    </g>
+  </defs>
+
+  <rect width="2220" height="3070" fill="#0d1310"/>
+  <text x="60" y="58" class="title">MINDMINER <tspan fill="#8bd0ad">/ 화면 와이어프레임 초안</tspan></text>
+  <text x="60" y="86" class="subtitle">게임 플로우와 화면 단위를 한 캔버스에 정리한 1차 레이아웃 제안 · 이름과 점수는 예시 · 각 프레임은 독립 SVG 벡터 요소</text>
+  <rect x="60" y="108" width="2100" height="82" rx="12" class="flow"/>
+  <text x="82" y="135" class="label">MAIN FLOW</text>
+  <g>
+    <rect x="82" y="148" width="190" height="28" rx="14" class="tag"/><text x="177" y="167" text-anchor="middle" class="flowtext">01 홈 / 진입</text>
+    <path d="M282 162H326" stroke="#8bd0ad" stroke-width="2" marker-end="url(#arrow)"/>
+    <rect x="340" y="148" width="190" height="28" rx="14" class="tag"/><text x="435" y="167" text-anchor="middle" class="flowtext">02 대기실</text>
+    <path d="M540 162H584" stroke="#8bd0ad" stroke-width="2" marker-end="url(#arrow)"/>
+    <rect x="598" y="148" width="190" height="28" rx="14" class="tag"/><text x="693" y="167" text-anchor="middle" class="flowtext">03 지뢰 배치</text>
+    <path d="M798 162H842" stroke="#8bd0ad" stroke-width="2" marker-end="url(#arrow)"/>
+    <rect x="856" y="148" width="190" height="28" rx="14" class="tag"/><text x="951" y="167" text-anchor="middle" class="flowtext">04 탐색 / 차례</text>
+    <path d="M1056 162H1100" stroke="#8bd0ad" stroke-width="2" marker-end="url(#arrow)"/>
+    <rect x="1114" y="148" width="190" height="28" rx="14" class="tag"/><text x="1209" y="167" text-anchor="middle" class="flowtext">05 라운드 결과</text>
+    <path d="M1314 162H1358" stroke="#8bd0ad" stroke-width="2" marker-end="url(#arrow)"/>
+    <rect x="1372" y="148" width="190" height="28" rx="14" class="tag"/><text x="1467" y="167" text-anchor="middle" class="flowtext">06 최종 결과</text>
+    <text x="1590" y="158" class="flowhint">모두 실패 → 판 전달 → 다음 플레이어</text>
+    <text x="1590" y="176" class="flowhint">정상 도착 → 라운드 결과 → 다음 라운드</text>
+  </g>
+
+  <!-- 01 HOME -->
+  <g transform="translate(60 224)">
+    <text x="0" y="0" class="caption">01 · 홈 / 게임 진입</text><text x="0" y="19" class="captionsub">첫 진입, 방 생성·참가, 혼자 연습 시작</text>
+    <rect x="0" y="32" width="1020" height="565" rx="12" class="viewport"/>
+    <path d="M0 88H1020" class="line"/><rect x="0" y="32" width="1020" height="56" rx="12" class="topbar"/><rect x="0" y="76" width="1020" height="12" class="topbar"/>
+    <path d="M25 70L38 46L51 70Z" fill="none" stroke="#8bd0ad" stroke-width="2"/><text x="61" y="67" class="navtext" font-weight="700">MINDMINER</text><text x="505" y="66" text-anchor="middle" class="small">함께 보고, 각자 기억하는 게임</text><text x="970" y="66" text-anchor="end" class="navtext">플레이 방법</text>
+    <text x="58" y="143" class="label">6인 기억 전략 보드게임</text><text x="58" y="187" class="h1">기억을 믿고,</text><text x="58" y="222" class="h1 accent">정상까지.</text><text x="58" y="252" class="body">서로의 판에 숨은 지뢰를 피해 정상을 찾아가세요.</text><text x="58" y="272" class="body">지나간 길을 기억하는 것이 이 게임의 전부입니다.</text>
+    <rect x="58" y="292" width="352" height="230" rx="10" class="panel"/><path d="M58 333H410" class="line"/><rect x="72" y="303" width="155" height="25" rx="6" class="tag"/><text x="149" y="320" text-anchor="middle" class="tagtext">방 만들기</text><text x="300" y="320" text-anchor="middle" class="small">코드로 참가</text>
+    <text x="78" y="360" class="label">플레이어 이름</text><rect x="78" y="372" width="310" height="38" rx="6" class="ghost"/><text x="92" y="396" class="small">이름을 입력하세요</text><rect x="78" y="424" width="310" height="43" rx="7" class="btn"/><text x="233" y="451" text-anchor="middle" class="btntxt">방 만들기  →</text><text x="78" y="492" class="tiny">방을 만든 뒤 초대 링크를 공유하세요.</text>
+    <rect x="58" y="537" width="352" height="39" rx="8" class="ghost"/><circle cx="80" cy="556" r="12" class="tag"/><text x="80" y="560" text-anchor="middle" class="tagtext">▶</text><text x="102" y="553" class="ghosttxt">혼자 연습하기</text><text x="102" y="567" class="tiny">봇 5명과 데모 플레이</text>
+    <rect x="451" y="119" width="510" height="405" rx="12" class="panel"/><use href="#miniBoard" transform="translate(-175 109) scale(.82)"/><rect x="642" y="469" width="230" height="30" rx="15" class="tag"/><text x="757" y="489" text-anchor="middle" class="tagtext">출발점은 다섯 곳 · 목표는 하나</text>
+    <path d="M58 588H960" class="line"/><text x="58" y="589" class="tiny">게임 규칙 한 줄 미리보기: 배치하기 · 기억하기 · 정상에 도착하기</text>
+  </g>
+
+  <!-- 02 LOBBY -->
+  <g transform="translate(1140 224)">
+    <text x="0" y="0" class="caption">02 · 온라인 대기실</text><text x="0" y="19" class="captionsub">초대하고, 참가자를 확인하고, 방장이 게임 시작</text>
+    <rect x="0" y="32" width="1020" height="565" rx="12" class="viewport"/><rect x="0" y="32" width="1020" height="56" rx="12" class="topbar"/><path d="M0 88H1020" class="line"/>
+    <text x="26" y="67" class="navtext" font-weight="700">MINDMINER</text><text x="510" y="66" text-anchor="middle" class="small">방 Q7K4P2</text><text x="984" y="66" text-anchor="end" class="navtext">나가기</text>
+    <text x="510" y="136" text-anchor="middle" class="label">대기실</text><text x="510" y="168" text-anchor="middle" class="h2">친구들을 초대하세요.</text><text x="510" y="191" text-anchor="middle" class="small">6명이 모두 모이면 방장이 게임을 시작할 수 있어요.</text>
+    <rect x="277" y="207" width="466" height="59" rx="8" class="panel"/><text x="297" y="230" class="tiny">초대 코드</text><text x="297" y="252" class="h2 accent">Q7K4P2</text><rect x="578" y="219" width="145" height="34" rx="6" class="ghost"/><text x="650" y="241" text-anchor="middle" class="ghosttxt">초대 링크 복사</text>
+    <g>
+      <rect x="44" y="288" width="145" height="130" rx="9" class="card"/><text x="58" y="308" class="tiny">1번 자리 · 방장</text><circle cx="116" cy="345" r="22" class="tag"/><text x="116" y="351" text-anchor="middle" class="tagtext">나</text><text x="116" y="389" text-anchor="middle" class="body">민준</text>
+      <rect x="202" y="288" width="145" height="130" rx="9" class="card"/><text x="216" y="308" class="tiny">2번 자리</text><circle cx="274" cy="345" r="22" class="tag"/><text x="274" y="351" text-anchor="middle" class="tagtext">서</text><text x="274" y="389" text-anchor="middle" class="body">서연</text>
+      <rect x="360" y="288" width="145" height="130" rx="9" class="card"/><text x="374" y="308" class="tiny">3번 자리</text><circle cx="432" cy="345" r="22" class="tag"/><text x="432" y="351" text-anchor="middle" class="tagtext">도</text><text x="432" y="389" text-anchor="middle" class="body">도윤</text>
+      <rect x="518" y="288" width="145" height="130" rx="9" class="card"/><text x="532" y="308" class="tiny">4번 자리</text><circle cx="590" cy="345" r="22" class="tag"/><text x="590" y="351" text-anchor="middle" class="tagtext">하</text><text x="590" y="389" text-anchor="middle" class="body">하린</text>
+      <rect x="676" y="288" width="145" height="130" rx="9" class="card"/><text x="690" y="308" class="tiny">5번 자리</text><circle cx="748" cy="345" r="22" class="tag"/><text x="748" y="351" text-anchor="middle" class="tagtext">유</text><text x="748" y="389" text-anchor="middle" class="body">유진</text>
+      <rect x="834" y="288" width="145" height="130" rx="9" class="panel" stroke-dasharray="4 4"/><text x="848" y="308" class="tiny">6번 자리</text><circle cx="906" cy="345" r="22" class="ghost"/><text x="906" y="351" text-anchor="middle" class="small">+</text><text x="906" y="389" text-anchor="middle" class="small">참가 대기 중</text>
+    </g>
+    <path d="M44 441H979" class="line"/><circle cx="56" cy="473" r="5" class="startnode"/><text x="69" y="477" class="body">5 / 6명 합류</text><rect x="741" y="451" width="238" height="48" rx="8" fill="#344238"/><text x="860" y="480" text-anchor="middle" class="small">6명 합류 후 시작 가능</text>
+    <text x="44" y="543" class="tiny">기능: 참가 순서대로 좌석 배정 · 방장만 시작 · 코드/링크 공유</text>
+  </g>
+
+  <!-- 03 PLACEMENT -->
+  <g transform="translate(60 944)">
+    <text x="0" y="0" class="caption">03 · 지뢰 배치</text><text x="0" y="19" class="captionsub">개인 보드에 배치하고 안전 경로를 확인한 뒤 준비 완료</text>
+    <rect x="0" y="32" width="1020" height="565" rx="12" class="viewport"/><rect x="0" y="32" width="1020" height="50" rx="12" class="topbar"/><path d="M0 82H1020" class="line"/>
+    <text x="24" y="63" class="navtext">게임　›　지뢰 배치</text><text x="992" y="63" text-anchor="end" class="navtext">라운드 01 / 07</text>
+    <rect x="20" y="102" width="205" height="465" rx="9" class="panel"/><text x="38" y="129" class="label">플레이어 · 준비</text>
+    <g class="body"><circle cx="48" cy="165" r="12" class="tag"/><text x="68" y="169">민준 · 나</text><text x="201" y="169" text-anchor="end" class="accent">배치 중</text><path d="M36 185H209" class="line"/>
+      <circle cx="48" cy="211" r="12" class="tag"/><text x="68" y="215">서연</text><text x="201" y="215" text-anchor="end" class="small">완료</text><path d="M36 231H209" class="line"/>
+      <circle cx="48" cy="257" r="12" class="tag"/><text x="68" y="261">도윤</text><text x="201" y="261" text-anchor="end" class="small">완료</text><path d="M36 277H209" class="line"/>
+      <circle cx="48" cy="303" r="12" class="tag"/><text x="68" y="307">하린</text><text x="201" y="307" text-anchor="end" class="small">배치 중</text><path d="M36 323H209" class="line"/>
+      <circle cx="48" cy="349" r="12" class="tag"/><text x="68" y="353">유진</text><text x="201" y="353" text-anchor="end" class="small">완료</text><path d="M36 369H209" class="line"/>
+      <circle cx="48" cy="395" r="12" class="tag"/><text x="68" y="399">준호</text><text x="201" y="399" text-anchor="end" class="small">배치 중</text></g>
+    <rect x="242" y="102" width="520" height="465" rx="9" class="panel"/><text x="262" y="130" class="h2">내 지뢰판</text><rect x="653" y="112" width="89" height="24" rx="12" class="tag"/><text x="697" y="128" text-anchor="middle" class="tagtext">비공개</text>
+    <use href="#miniBoard" transform="translate(105 100) scale(.8)"/>
+    <g transform="translate(105 100) scale(.8)"><path d="M420 159L520 250M520 250L620 342M320 250L420 342" class="edgeMine"/><circle cx="470" cy="204.5" r="9" fill="#ed8975"/><circle cx="570" cy="296" r="9" fill="#ed8975"/><circle cx="370" cy="296" r="9" fill="#ed8975"/></g>
+    <rect x="784" y="102" width="216" height="465" rx="9" class="panel"/><text x="804" y="130" class="label">배치 도구</text><text x="804" y="169" class="small">설치한 지뢰</text><text x="976" y="172" text-anchor="end" class="h2">3 <tspan class="small">개</tspan></text><rect x="804" y="190" width="176" height="48" rx="7" class="tag"/><text x="820" y="210" class="tagtext">✓ 안전 경로 확인</text><text x="820" y="228" class="tiny">정상까지 이어지는 길이 있어요</text>
+    <text x="804" y="265" class="small">밑변은 안전합니다.</text><text x="804" y="283" class="small">안전 경로를 하나 남겨주세요.</text><rect x="804" y="307" width="176" height="37" rx="6" class="ghost"/><text x="892" y="331" text-anchor="middle" class="ghosttxt">랜덤 배치</text><rect x="804" y="353" width="176" height="37" rx="6" class="ghost"/><text x="892" y="377" text-anchor="middle" class="ghosttxt">모두 지우기</text><rect x="804" y="417" width="176" height="50" rx="8" class="btn"/><text x="892" y="447" text-anchor="middle" class="btntxt">이 배치로 준비 완료</text><text x="892" y="492" text-anchor="middle" class="small">3 / 6명 준비 완료</text><path d="M816 508H968" class="line"/><path d="M816 508H892" stroke="#8bd0ad" stroke-width="4"/>
+  </g>
+
+  <!-- 04 ACTIVE TURN -->
+  <g transform="translate(1140 944)">
+    <text x="0" y="0" class="caption">04 · 탐색 / 내 차례</text><text x="0" y="19" class="captionsub">보드를 중심에 두고 현재 차례와 한 가지 다음 행동을 강조</text>
+    <rect x="0" y="32" width="1020" height="565" rx="12" class="viewport"/><rect x="0" y="32" width="1020" height="50" rx="12" class="topbar"/><path d="M0 82H1020" class="line"/>
+    <text x="24" y="63" class="navtext">탐색　·　라운드 03 / 07</text><rect x="794" y="44" width="118" height="26" rx="13" class="tag"/><text x="853" y="61" text-anchor="middle" class="tagtext">내 차례</text><text x="992" y="62" text-anchor="end" class="navtext">Q7K4P2</text>
+    <rect x="20" y="102" width="195" height="465" rx="9" class="panel"/><text x="38" y="129" class="label">플레이어 · 점수</text>
+    <g><rect x="31" y="144" width="173" height="46" rx="7" fill="#2b3b30" stroke="#8bd0ad"/><circle cx="51" cy="167" r="12" class="tag"/><text x="71" y="163" class="body">민준 <tspan class="tagtext">나</tspan></text><text x="71" y="180" class="tiny">탐색 중</text><text x="190" y="171" text-anchor="end" class="body">4</text>
+      <circle cx="51" cy="215" r="12" class="tag"/><text x="71" y="219" class="body">서연</text><text x="190" y="219" text-anchor="end" class="small">3</text><path d="M36 239H198" class="line"/>
+      <circle cx="51" cy="260" r="12" class="tag"/><text x="71" y="264" class="body">도윤</text><text x="190" y="264" text-anchor="end" class="small">2</text><path d="M36 284H198" class="line"/>
+      <circle cx="51" cy="305" r="12" class="tag"/><text x="71" y="309" class="body">하린</text><text x="190" y="309" text-anchor="end" class="small">1</text><path d="M36 329H198" class="line"/>
+      <circle cx="51" cy="350" r="12" class="tag"/><text x="71" y="354" class="body">유진</text><text x="190" y="354" text-anchor="end" class="small">0</text><path d="M36 374H198" class="line"/>
+      <circle cx="51" cy="395" r="12" class="tag"/><text x="71" y="399" class="body">준호</text><text x="190" y="399" text-anchor="end" class="small">0</text></g>
+    <rect x="232" y="102" width="555" height="465" rx="9" class="panel"/><text x="257" y="131" class="h2">민준, 어디로 갈까요?</text><text x="257" y="153" class="small">현재 판 · 서연의 판</text><rect x="668" y="115" width="94" height="25" rx="12" class="tag"/><text x="715" y="132" text-anchor="middle" class="tagtext">공개 보드</text>
+    <use href="#miniBoard" transform="translate(-170 123) scale(.72)"/>
+    <g transform="translate(-170 123) scale(.72)"><path d="M620 432L620 342L520 250L420 159" class="edge"/><circle cx="620" cy="432" r="15" fill="none" stroke="#8bd0ad" stroke-width="2"/><circle cx="620" cy="432" r="7" class="startnode"/><path d="M620 416L617 405H623Z" fill="#8bd0ad"/></g>
+    <rect x="257" y="526" width="252" height="25" rx="12" class="tag"/><text x="383" y="543" text-anchor="middle" class="tagtext">출발점 5개　·　정상 1개</text>
+    <rect x="804" y="102" width="196" height="465" rx="9" class="panel"/><text x="824" y="130" class="label">내 차례 행동</text><text x="824" y="170" class="small">현재 위치</text><text x="824" y="193" class="body">출발 전</text><path d="M824 211H980" class="line"/><text x="824" y="239" class="small">남은 힌트</text><text x="824" y="270" class="h2 gold">● ● ● <tspan class="small">3 / 3</tspan></text><rect x="824" y="296" width="156" height="43" rx="7" class="ghost"/><text x="902" y="322" text-anchor="middle" class="ghosttxt">힌트 사용  −1</text><text x="824" y="366" class="tiny">밑변 출발점 중 하나를</text><text x="824" y="382" class="tiny">눌러 탐색을 시작하세요.</text><rect x="824" y="410" width="156" height="54" rx="8" class="tag"/><text x="902" y="433" text-anchor="middle" class="tagtext">다음 행동</text><text x="902" y="451" text-anchor="middle" class="small">출발점 선택</text><text x="824" y="505" class="tiny">남은 코인은 승리 점수가 됩니다.</text>
+  </g>
+
+  <!-- 05 SPECTATOR / EXPLOSION -->
+  <g transform="translate(60 1664)">
+    <text x="0" y="0" class="caption">05 · 탐색 / 다른 플레이어 차례</text><text x="0" y="19" class="captionsub">관전 상태에서도 보드와 공개 이벤트가 주인공, 내 행동은 잠금</text>
+    <rect x="0" y="32" width="1020" height="565" rx="12" class="viewport"/><rect x="0" y="32" width="1020" height="50" rx="12" class="topbar"/><path d="M0 82H1020" class="line"/>
+    <text x="24" y="63" class="navtext">탐색　·　라운드 03 / 07</text><rect x="783" y="44" width="130" height="26" rx="13" class="ghost"/><text x="848" y="61" text-anchor="middle" class="ghosttxt">서연의 차례</text><text x="992" y="62" text-anchor="end" class="navtext">Q7K4P2</text>
+    <rect x="20" y="102" width="195" height="465" rx="9" class="panel"/><text x="38" y="129" class="label">플레이어 · 점수</text><rect x="31" y="190" width="173" height="46" rx="7" fill="#2b3b30" stroke="#e4c77d"/><circle cx="51" cy="213" r="12" class="tag"/><text x="71" y="209" class="body">서연</text><text x="71" y="226" class="tiny">탐색 중</text><text x="190" y="217" text-anchor="end" class="body">3</text>
+    <g class="small"><text x="44" y="164">민준 · 나</text><text x="190" y="164" text-anchor="end">4</text><text x="44" y="264">도윤</text><text x="190" y="264" text-anchor="end">2</text><text x="44" y="309">하린</text><text x="190" y="309" text-anchor="end">1</text><text x="44" y="354">유진</text><text x="190" y="354" text-anchor="end">0</text><text x="44" y="399">준호</text><text x="190" y="399" text-anchor="end">0</text></g>
+    <rect x="232" y="102" width="555" height="465" rx="9" class="panel"/><text x="257" y="131" class="h2">서연의 판</text><text x="257" y="153" class="small">폭발 위치를 기억하세요</text><rect x="668" y="115" width="94" height="25" rx="12" class="tag"/><text x="715" y="132" text-anchor="middle" class="tagtext">공개 보드</text>
+    <use href="#miniBoard" transform="translate(-170 123) scale(.72)"/><g transform="translate(-170 123) scale(.72)"><path d="M620 432L620 342L520 250" class="edge"/><path d="M520 250L420 159" class="edgeMine"/><circle cx="470" cy="204.5" r="21" fill="#ed8975" fill-opacity=".12" stroke="#ed8975" stroke-width="2"/><path d="M460 194.5L480 214.5M480 194.5L460 214.5M470 176.5V184.5M470 224.5V232.5M452 204.5H460M480 204.5H488" stroke="#ed8975" stroke-width="2" stroke-linecap="round"/><text x="470" y="255" text-anchor="middle" class="danger" font-size="11">폭발!</text></g>
+    <rect x="257" y="526" width="252" height="25" rx="12" class="tag"/><text x="383" y="543" text-anchor="middle" class="tagtext">공개된 이동을 함께 기억</text>
+    <rect x="804" y="102" width="196" height="465" rx="9" class="panel"/><text x="824" y="130" class="label">관전 중</text><text x="824" y="171" class="body">서연이 탐색 중이에요.</text><text x="824" y="202" class="small">내 차례가 오면</text><text x="824" y="220" class="small">직접 이동할 수 있어요.</text><path d="M824 244H980" class="line"/><text x="824" y="274" class="small">내 힌트</text><text x="824" y="300" class="body">● ● ●　3 / 3</text><rect x="824" y="319" width="156" height="42" rx="7" fill="#26332b"/><text x="902" y="345" text-anchor="middle" class="small">내 차례에 사용 가능</text><rect x="824" y="391" width="156" height="93" rx="8" class="panel2"/><text x="840" y="415" class="label">지금 일어난 일</text><text x="840" y="439" class="small">서연의 이동</text><text x="840" y="459" class="danger">지뢰 폭발</text><text x="824" y="520" class="tiny">이 장면은 잠시 후 사라집니다.</text>
+  </g>
+
+  <!-- 06 ROUND RESULTS -->
+  <g transform="translate(1140 1664)">
+    <text x="0" y="0" class="caption">06 · 라운드 결과</text><text x="0" y="19" class="captionsub">한 라운드의 승리와 점수 계산을 확인하고 다음으로</text>
+    <rect x="0" y="32" width="1020" height="565" rx="12" class="viewport"/><rect x="0" y="32" width="1020" height="50" rx="12" class="topbar"/><path d="M0 82H1020" class="line"/><text x="24" y="63" class="navtext">게임　›　라운드 결과</text><text x="992" y="63" text-anchor="end" class="navtext">라운드 03 / 07</text>
+    <circle cx="510" cy="133" r="29" class="tag"/><path d="M498 133L507 142L524 121" fill="none" stroke="#e4c77d" stroke-width="3"/><text x="510" y="183" text-anchor="middle" class="label">라운드 3 종료</text><text x="510" y="218" text-anchor="middle" class="h1">민준, 정상에 도착!</text><text x="510" y="245" text-anchor="middle" class="body">이번 라운드의 승리자입니다.</text>
+    <rect x="290" y="263" width="440" height="67" rx="9" class="panel"/><text x="326" y="290" class="small">정상 도착</text><text x="326" y="313" class="h2">1점</text><text x="430" y="303" class="h2 gold">+</text><text x="470" y="290" class="small">남은 힌트</text><text x="470" y="313" class="h2">2개</text><text x="579" y="303" class="h2 gold">=</text><text x="627" y="310" class="h1 accent">+3점</text>
+    <rect x="246" y="350" width="528" height="164" rx="9" class="panel"/><text x="272" y="378" class="label">현재 순위</text><text x="735" y="378" text-anchor="end" class="label">누적 점수</text><path d="M266 391H754" class="line"/>
+    <text x="276" y="420" class="gold" font-size="12">01</text><text x="320" y="420" class="body">민준　나</text><text x="735" y="420" text-anchor="end" class="body">7 pt</text><path d="M266 433H754" class="line"/>
+    <text x="276" y="458" class="small">02</text><text x="320" y="458" class="body">서연</text><text x="735" y="458" text-anchor="end" class="body">5 pt</text><path d="M266 471H754" class="line"/>
+    <text x="276" y="496" class="small">03</text><text x="320" y="496" class="body">도윤</text><text x="735" y="496" text-anchor="end" class="body">4 pt</text>
+    <rect x="372" y="528" width="276" height="45" rx="8" class="btn"/><text x="510" y="556" text-anchor="middle" class="btntxt">다음 라운드 배치하기　→</text>
+  </g>
+
+  <!-- 07 FINAL RESULTS -->
+  <g transform="translate(60 2384)">
+    <text x="0" y="0" class="caption">07 · 최종 결과</text><text x="0" y="19" class="captionsub">7라운드 누적 결과, 우승자와 다시 시작하기</text>
+    <rect x="0" y="32" width="1020" height="565" rx="12" class="viewport"/><rect x="0" y="32" width="1020" height="50" rx="12" class="topbar"/><path d="M0 82H1020" class="line"/><text x="24" y="63" class="navtext">게임　›　최종 결과</text><text x="992" y="63" text-anchor="end" class="navtext">7라운드 완료</text>
+    <circle cx="510" cy="132" r="28" class="tag"/><path d="M499 134L507 142L523 119" fill="none" stroke="#e4c77d" stroke-width="3"/><text x="510" y="181" text-anchor="middle" class="label">게임 종료</text><text x="510" y="216" text-anchor="middle" class="h1">민준, 최종 우승!</text><text x="510" y="243" text-anchor="middle" class="body">7라운드 동안 가장 높은 점수를 기록했어요.</text>
+    <rect x="246" y="264" width="528" height="220" rx="9" class="panel"/><text x="272" y="292" class="label">최종 순위</text><text x="735" y="292" text-anchor="end" class="label">점수</text><path d="M266 305H754" class="line"/>
+    <rect x="263" y="314" width="494" height="39" rx="5" fill="#2a3b30"/><text x="280" y="339" class="gold" font-size="13">01</text><text x="326" y="339" class="body">민준　나</text><text x="735" y="339" text-anchor="end" class="body">18 pt</text><path d="M266 358H754" class="line"/>
+    <text x="280" y="385" class="small">02</text><text x="326" y="385" class="body">서연</text><text x="735" y="385" text-anchor="end" class="body">16 pt</text><path d="M266 403H754" class="line"/>
+    <text x="280" y="430" class="small">03</text><text x="326" y="430" class="body">도윤</text><text x="735" y="430" text-anchor="end" class="body">14 pt</text><path d="M266 448H754" class="line"/>
+    <text x="280" y="475" class="small">04</text><text x="326" y="475" class="body">하린 · 유진 · 준호</text><text x="735" y="475" text-anchor="end" class="body">공동 순위</text>
+    <rect x="372" y="510" width="276" height="45" rx="8" class="btn"/><text x="510" y="538" text-anchor="middle" class="btntxt">새 게임 시작　→</text><text x="510" y="577" text-anchor="middle" class="tiny">방장이 새 게임을 시작하면 점수와 배치가 초기화됩니다.</text>
+  </g>
+
+  <!-- 08 MODALS -->
+  <g transform="translate(1140 2384)">
+    <text x="0" y="0" class="caption">08 · 플레이 오버레이 / 모달</text><text x="0" y="19" class="captionsub">게임 흐름은 유지하면서 필요한 순간에만 위에 겹쳐 표시</text>
+    <rect x="0" y="32" width="1020" height="565" rx="12" class="viewport"/><rect x="0" y="32" width="1020" height="565" rx="12" class="overlay"/>
+    <text x="510" y="75" text-anchor="middle" class="label">A · 개인 힌트 응답</text>
+    <rect x="195" y="92" width="630" height="238" rx="12" class="panel2" stroke="#607466"/><text x="225" y="124" class="small">MINDMINER　·　개인 정보</text><text x="795" y="124" text-anchor="end" class="small">×</text><path d="M219 140H801" class="line"/><text x="510" y="176" text-anchor="middle" class="h2">당신만의 단서입니다.</text><circle cx="510" cy="217" r="23" fill="#392a27" stroke="#ed8975"/><path d="M501 208L519 226M519 208L501 226" stroke="#ed8975" stroke-width="3"/><text x="510" y="264" text-anchor="middle" class="h2 danger">지뢰가 있어요.</text><text x="510" y="285" text-anchor="middle" class="small">선택한 선분을 기억하세요. 닫으면 답변은 사라집니다.</text><rect x="394" y="298" width="232" height="22" rx="6" class="btn"/><text x="510" y="314" text-anchor="middle" class="btntxt">기억했어요 · 닫기</text>
+    <text x="510" y="371" text-anchor="middle" class="label">B · 나가기 확인</text>
+    <rect x="255" y="388" width="510" height="164" rx="12" class="panel2" stroke="#607466"/><text x="283" y="420" class="small">MINDMINER</text><text x="737" y="420" text-anchor="end" class="small">×</text><text x="283" y="452" class="h2">홈으로 이동할까요?</text><text x="283" y="475" class="small">온라인 방과 내 자리는 유지됩니다.</text><rect x="283" y="498" width="190" height="36" rx="6" class="ghost"/><text x="378" y="521" text-anchor="middle" class="ghosttxt">계속 플레이</text><rect x="484" y="498" width="253" height="36" rx="6" class="btn"/><text x="610" y="521" text-anchor="middle" class="btntxt">홈으로 이동　→</text>
+    <text x="510" y="578" text-anchor="middle" class="tiny">힌트 모달은 개인 답만 표시 · 나가기 모달은 데모/온라인에 맞는 설명 제공</text>
+  </g>
+
+  <text x="60" y="3035" class="flowhint">초안 원칙: 큰 보드 · 차례가 보이는 HUD · 한 화면에 한 가지 다음 행동 · 공개/개인 정보 구분</text>
+  <text x="2160" y="3035" text-anchor="end" class="flowhint">MindMiner wireframe atlas · editable SVG</text>
+</svg>
