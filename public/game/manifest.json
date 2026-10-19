@@ -1,0 +1,19 @@
+{
+  "title": "Quiet Mine / original game asset kit",
+  "models": [
+    "models/miner-cart.glb",
+    "models/timber-arch.glb",
+    "models/lantern.glb",
+    "models/supply-crate.glb",
+    "models/cave-rock.glb"
+  ],
+  "ui": "ui/atlas.png",
+  "frames": "ui/atlas.json",
+  "fx": [
+    "fx/glow.png",
+    "fx/dust.png",
+    "fx/spark.png"
+  ],
+  "source": "assets/source/quiet-mine-kit.blend",
+  "license": "Original assets created for MindMiner; no third-party game artwork."
+}

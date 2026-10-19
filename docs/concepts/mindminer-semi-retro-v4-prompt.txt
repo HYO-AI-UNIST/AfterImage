@@ -1,0 +1,29 @@
+Use case: ui-mockup / stylized-concept, full visual style replacement.
+Edit the supplied MINDMINER sheet. The reference is ONLY for the layout, triangular track-board organization, dark underground setting and UI locations. Completely discard its realistic rendering style. Redraw EVERY element in a radically simpler, beautifully clean, graphic visual language.
+
+USER PRIORITY: VERY SIMPLE GRAPHICS. CLEAN LINES. Dark and atmospheric. Serious, quiet characters. Semi-retro 2D UI and top-down 3D gameplay remain.
+
+The desired result is a screenshot of a deliberately minimalist cel-shaded 3D indie game, with the visual simplicity and graphic readability of Among Us backgrounds, adapted to an original mine setting. Use flat untextured materials, precise smooth outlines, large simple shapes and ONLY two hard-edged color tones per object. No realistic lighting, no surface noise. It must be immediately obvious that this is a graphic cartoon game built from clean simple geometry, not a cinematic render.
+
+STYLE SPECIFICATION, highest priority:
+- Very clean even-weight dark outlines. Smooth edges. Clear silhouettes. Flat solid color fills.
+- Each rock is one large angular silhouette with ONE shadow plane, no cracks or little rocks. Simplify entire cave perimeter into 8–12 broad connected rock masses and just 3–4 rectangular timber supports.
+- Floor is a single matte dark desaturated blue-gray plane, with no dirt, gravel, puddles or texture. Use negative space.
+- Rails are clean double thin light-gray lines, with just three simple rectangular sleepers per edge. All fifteen junction plates are plain flat circles with a thin outline, NO rivets, machining, weathering or bevel detail.
+- The minecart is a very simple dark rectangular box with four plain disc wheels, no scratch marks, rivets or mechanical detail.
+- Small lamps are basic rectangular amber shapes. A few very subtle flat amber light-pool shapes provide atmosphere. Shadows are simplified flat shapes, no volumetric light, dust, fog, bloom or reflective effects.
+- Do NOT use realistic material textures, painterly strokes, noise, woodgrain, metallic reflections, skin shading, intricate detail, glossy toy surfaces, or highly faceted low-poly rendering. The look is closer to clean line animation and simple cel-shaded geometry than a detailed 3D illustration.
+
+COLOR AND MOOD:
+Very restrained dark palette: near-black blue outlines, dark slate floor, deep desaturated teal rock, slightly lighter desaturated gray rails, a few muted amber lamps, aged ivory UI text. Low-key and melancholy, with plenty of dark empty space. Keep gameplay rails readable. Warmth comes from only a few tiny lamps and the miner headlamp, not bright global illumination. No crystals or colorful collectible objects.
+
+CHARACTERS:
+An ORIGINAL simplified miner, quiet and serious. The adult miner is reduced to a simple upright dark work-coat shape, mitten hands, small plain helmet, little headlamp, narrow dark face area with two small neutral eyes or face almost hidden under helmet shadow. The head is modest relative to shoulders, approximately one third of visible upper-body height, not a huge childlike head. No smile, no expressive baby face, no detailed facial anatomy, NO beard hairs, moustache, skin pores, muscles, realistic folds or detailed clothing. Seriousness comes from still posture and a restrained silhouette, never realism. Six top portrait badges use this SAME very simple character design with muted helmet colors. Apply the style consistently to main pawn, supporting large character and UI portraits.
+
+STRUCTURE:
+Preserve the sheet's large left gameplay screen and right supporting MINER + CART, RAIL JUNCTION, RETRO HUD, and palette studies. Main gameplay is an orthographic TOP-DOWN 3D view, looking steeply down at a single flat floor with subtle object thickness. A triangular network of minecart rails has five rows of 1,2,3,4,5 junctions (15 total) with horizontal and diagonal connecting edges. Five base depots labeled 1 to 5; small exit at apex. ONE miner in one cart. No other parked carts or extra props. No hidden mines or route history. A couple of thin understated amber outlines mark legal neighboring destinations. Preserve legibility.
+
+RETRO HUD:
+Simple flat charcoal boxes with precise thin warm-gray stepped rectangular borders. No ornate metal frame, no distressing, no bevels, no rivets. Crisp bitmap-inspired text, minimal amber accents. Six small portraits at top, ROUND 02 / 07, compact bottom YOUR TURN and three plain circular hint tokens and HINT -1 button. Same style in right-hand UI studies. Keep labels short. Sheet title MINDMINER / SEMI-RETRO MINE. Corner label CONCEPT 04.
+
+Make the FINAL look extremely simple, confident, clean, graphic and restrained, with beautiful shapes and strong negative space. ALL image regions must be redrawn in this new style. Do not retain any realistic region from the reference. This is an art-direction reset, not a brightness adjustment.

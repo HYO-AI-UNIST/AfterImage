@@ -1,0 +1,49 @@
+{
+  "name": "MindMiner / Quiet Mine",
+  "version": "0.1.0",
+  "reference": "../concepts/mindminer-semi-retro-v4.png",
+  "color": {
+    "canvas": "#0B1118",
+    "coal": "#101720",
+    "floor": "#1C2935",
+    "rock": "#15212C",
+    "rockFace": "#263A49",
+    "panel": "#141E28",
+    "panelRaised": "#21313D",
+    "outline": "#465764",
+    "ivory": "#EEE3CF",
+    "muted": "#A7B2B6",
+    "rail": "#9EA9AE",
+    "timber": "#60493D",
+    "amber": "#E6AE55",
+    "amberHover": "#F1C987",
+    "amberPressed": "#BD873D",
+    "privateTeal": "#84BBB8",
+    "danger": "#D58773",
+    "disabledText": "#82909A"
+  },
+  "playerColors": ["#C49853", "#719B8D", "#AB7163", "#6B8FA8", "#8E7D9E", "#B5A28B"],
+  "type": {
+    "display": { "family": "Menlo, Monaco, Courier New, monospace", "weight": 700, "size": 48 },
+    "title": { "family": "Pretendard, Apple SD Gothic Neo, sans-serif", "weight": 700, "size": 28 },
+    "body": { "family": "Pretendard, Apple SD Gothic Neo, sans-serif", "weight": 500, "size": 16 },
+    "label": { "family": "Pretendard, Apple SD Gothic Neo, sans-serif", "weight": 500, "size": 12 },
+    "number": { "family": "Menlo, Monaco, Courier New, monospace", "weight": 700, "size": 24 }
+  },
+  "spacing": [4, 8, 12, 16, 24, 32, 48],
+  "stroke": { "detail": 1, "ui": 2, "silhouette": 3 },
+  "shape": { "chamfer": 6, "cornerRadius": 2, "materialTonesMax": 2 },
+  "interaction": { "desktopTarget": 40, "touchTarget": 48, "focusOutline": 2, "focusOffset": 3 },
+  "viewport": { "desktop": [960, 600], "mobile": [360, 680] },
+  "motionMs": { "hover": 100, "press": 80, "turnIntroProposed": 900, "safeMoveCurrent": 650, "explosionCurrent": 1800, "rotationCurrent": 1400 },
+  "world": { "camera": "orthographic top-down, subtle visible object thickness", "junctionRows": [1, 2, 3, 4, 5], "junctionCount": 15, "railEdges": 30, "baseDepots": 5, "goal": "exit lift", "textures": false, "persistentMovementTrails": false },
+  "semantics": {
+    "turnAndPrimary": "amber + frame or turn label",
+    "availableDestination": "ivory ring + small center marker",
+    "privateHint": "teal + private label",
+    "placementMine": "danger + cross; placement owner only",
+    "explosion": "danger + burst; temporary public event",
+    "neutralRail": "same rail appearance regardless of hidden mine status",
+    "disabled": "muted label + inactive frame; keep explanatory text readable"
+  }
+}
