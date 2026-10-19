@@ -9,10 +9,10 @@ try {
     GlobalFonts.registerFromPath(path.join(root, 'public/fonts/PretendardVariable.woff2'), 'Pretendard');
 }
 catch { }
-const atlas = createCanvas(2048, 1536), ctx = atlas.getContext('2d');
+const atlas = createCanvas(2048, 2048), ctx = atlas.getContext('2d');
 const manifest = {};
 let x = 0, y = 0, row = 0;
-const colors = ['#c49853', '#719b8d', '#ab7163', '#6b8fa8', '#8e7d9e', '#b5a28b'];
+const colors = ['#aa9975', '#798b84', '#957c72', '#7a8c96', '#89828f', '#a09986'];
 function sprite(name, w, h, draw) {
     if (x + w > 2048) {
         x = 0;
@@ -50,14 +50,63 @@ function shape(g, x, y, w, h, fill, stroke = '#a79d88', cut = 8, lw = 2) {
         g.stroke();
     }
 }
-for (const [n, fill, line] of [['panel', '#111b25f2', '#66737a'], ['panel-light', '#1c2b36f5', '#9aa8aa'], ['button', '#e6ae55', '#f1d6a4'], ['button-hover', '#f2c782', '#fff0d4'], ['button-pressed', '#b78340', '#f1d6a4'], ['button-disabled', '#26323b', '#4b5b65'], ['button-quiet', '#141f29', '#76858a'], ['panel-private', '#152a31', '#84bbb8']]) {
+for (const [n, fill, line] of [['panel', '#101315f5', '#555e61'], ['panel-light', '#1b2022f5', '#8e989b'], ['button', '#b0c3cf', '#f1d6a4'], ['button-hover', '#f2c782', '#fff0d4'], ['button-pressed', '#b78340', '#f1d6a4'], ['button-disabled', '#232729', '#464e51'], ['button-quiet', '#131719', '#76858a'], ['panel-private', '#1a2327', '#9db5c1']]) {
     sprite(n, 128, 96, g => { shape(g, 2, 2, 124, 92, fill, line, 7, 2); if (n === 'panel')
-        shape(g, 7, 7, 114, 82, '#00000000', '#354550', 4, 1); });
+        shape(g, 7, 7, 114, 82, '#00000000', '#30383c', 4, 1); });
 }
+// Each interaction state is painted into its own sprite: bevels, sockets, light and travel.
+for (const quiet of [false, true]) for (const state of ['idle', 'hover', 'pressed']) {
+    const name = quiet ? `button-quiet${state === 'idle' ? '' : `-${state}`}` : state === 'idle' ? 'button' : `button-${state}`;
+    sprite(name, 160, 112, g => {
+        const down = state === 'pressed', hot = state === 'hover', lift = down ? 5 : 0;
+        shape(g, 3, 8, 154, 100, '#07090b', '#07090b', 9, 2);
+        const grad = g.createLinearGradient(0, 5, 0, 100);
+        grad.addColorStop(0, quiet ? hot ? '#536b79' : down ? '#20282c' : '#39474f' : hot ? '#f0f7fa' : down ? '#7893a3' : '#c3d6e2');
+        grad.addColorStop(1, quiet ? hot ? '#28353d' : '#1c272e' : hot ? '#bfd4df' : '#8da7b8');
+        shape(g, 3, 3 + lift, 154, 98 - lift, grad, quiet ? hot ? '#cadce4' : '#879ca9' : '#e7f2f7', 9, 2);
+        g.fillStyle = down ? '#00000024' : '#ffffff24'; g.fillRect(14, 12 + lift, 132, 4);
+        g.fillStyle = hot ? quiet ? '#d0e0e6' : '#e2ebee' : quiet ? '#526775' : '#485f6d';
+        for (const xx of [12, 144]) { g.fillRect(xx, 23 + lift, 3, 7); g.fillRect(xx, 76 + lift, 3, 7); }
+        if (hot) { g.fillStyle = quiet ? '#b5cfdc' : '#d6e3e9'; g.fillRect(22, 88, 116, 3); }
+        if (down) { g.fillStyle = '#050a1166'; g.fillRect(14, 12, 132, 5); }
+    });
+}
+for (const hot of [false, true]) sprite(hot ? 'route-arrow-hot' : 'route-arrow', 224, 224, g => {
+    g.translate(48,48);
+    g.shadowColor = hot ? '#e2eaed' : '#a7d2ed'; g.shadowBlur = hot ? 24 : 17;
+    g.fillStyle = hot ? '#edf4f7' : '#d2e5ee'; g.strokeStyle = '#080c0f'; g.lineWidth = 7;
+    g.beginPath(); g.moveTo(64, 12); g.lineTo(111, 64); g.lineTo(84, 64); g.lineTo(84, 105); g.lineTo(44, 105); g.lineTo(44, 64); g.lineTo(17, 64); g.closePath(); g.stroke(); g.fill();
+    g.shadowBlur = 0; g.fillStyle = '#ffffffa0'; g.fillRect(56, 60, 8, 33);
+});
+sprite('board-card', 180, 220, g => {
+    shape(g, 7, 7, 166, 205, '#1b2226', '#9eafba', 12, 3);
+    shape(g, 16, 17, 148, 184, '#111619', '#5a6870', 8, 2);
+    g.strokeStyle = '#9aafb8'; g.lineWidth = 4;
+    for (let row = 0; row < 4; row++) for (let col = 0; col <= row; col++) {
+        const px = 90 + (col - row / 2) * 31, py = 53 + row * 33;
+        if (row < 3) for (const d of [-1, 1]) { g.beginPath(); g.moveTo(px, py); g.lineTo(px + d * 15.5, py + 33); g.stroke(); }
+        g.fillStyle = '#b0c3cf'; g.fillRect(px - 4, py - 4, 8, 8);
+    }
+    g.fillStyle = '#b0c3cf'; g.fillRect(48, 176, 84, 4);
+});
+sprite('victory-badge', 160, 160, g => {
+    g.fillStyle = '#536976'; g.strokeStyle = '#d5e7f0'; g.lineWidth = 3;
+    g.beginPath(); for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2 - Math.PI / 2, r = i % 2 ? 45 : 66; const x = 80 + Math.cos(a) * r, y = 80 + Math.sin(a) * r; if (!i) g.moveTo(x,y); else g.lineTo(x,y); } g.closePath(); g.fill(); g.stroke();
+    g.fillStyle = '#0d1419'; g.beginPath(); g.arc(80,80,32,0,Math.PI*2); g.fill();
+    g.fillStyle = '#ffffff'; g.font = 'bold 38px Menlo'; g.textAlign='center'; g.textBaseline='middle'; g.fillText('1',80,82);
+});
+sprite('stage-ray', 128, 512, g => {
+    const grad = g.createLinearGradient(0,0,0,512); grad.addColorStop(0,'#d4e9f855'); grad.addColorStop(.5,'#b9d8ed19'); grad.addColorStop(1,'#b9d8ed00');
+    g.fillStyle=grad; g.beginPath(); g.moveTo(60,0); g.lineTo(68,0); g.lineTo(128,512); g.lineTo(0,512); g.closePath(); g.fill();
+});
+sprite('reward-spark',64,64,g => {
+    g.shadowColor='#d5eaf6';g.shadowBlur=13;g.fillStyle='#e3f1f7';
+    g.beginPath();g.moveTo(32,7);g.lineTo(38,26);g.lineTo(57,32);g.lineTo(38,38);g.lineTo(32,57);g.lineTo(26,38);g.lineTo(7,32);g.lineTo(26,26);g.closePath();g.fill();
+});
 for (let i = 0; i < 6; i++)
     sprite(`portrait-${i}`, 128, 144, g => {
-        shape(g, 2, 2, 124, 140, '#111b25', '#465764', 8);
-        g.fillStyle = '#32434b';
+        shape(g, 2, 2, 124, 140, '#14181a', '#465055', 8);
+        g.fillStyle = '#30383b';
         g.beginPath();
         g.moveTo(20, 134);
         g.lineTo(32, 94);
@@ -74,7 +123,7 @@ for (let i = 0; i < 6; i++)
         g.lineTo(64, 108);
         g.lineTo(45, 96);
         g.fill();
-        g.fillStyle = '#0a121b';
+        g.fillStyle = '#090c0f';
         g.fillRect(40, 68, 47, 15);
         g.fillStyle = colors[i];
         g.beginPath();
@@ -82,18 +131,18 @@ for (let i = 0; i < 6; i++)
         g.quadraticCurveTo(28, 23, 63, 23);
         g.quadraticCurveTo(96, 25, 96, 65);
         g.fill();
-        g.strokeStyle = '#0a121b';
+        g.strokeStyle = '#090c0f';
         g.lineWidth = 5;
         g.stroke();
         g.fillStyle = colors[i];
         g.fillRect(26, 61, 74, 10);
-        g.fillStyle = '#0a121b';
+        g.fillStyle = '#090c0f';
         g.fillRect(74, 36, 21, 23);
         g.fillStyle = '#f0dfb7';
         g.beginPath();
         g.arc(84, 47, 7, 0, Math.PI * 2);
         g.fill();
-        g.strokeStyle = '#111b25';
+        g.strokeStyle = '#14181a';
         g.lineWidth = 5;
         g.beginPath();
         g.moveTo(47, 111);
@@ -102,27 +151,18 @@ for (let i = 0; i < 6; i++)
         g.lineTo(94, 131);
         g.stroke();
     });
-sprite('logo', 1000, 236, g => {
-    g.textAlign = 'left';
-    g.textBaseline = 'middle';
-    g.font = 'bold 116px Menlo, monospace';
-    g.fillStyle = '#081019';
-    g.fillText('MINDMINER', 9, 105);
-    g.fillStyle = '#eee3cf';
-    g.fillText('MINDMINER', 4, 98);
-    g.fillStyle = '#e6ae55';
-    g.fillRect(8, 176, 46, 3);
-    g.font = '20px Menlo, monospace';
-    g.fillStyle = '#a8b3b8';
-    g.fillText('A LITTLE LIGHT. A LONG MEMORY.', 76, 178);
+sprite('logo', 1000, 160, g => {
+    g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = 'bold 152px Menlo, monospace';
+    g.fillStyle = '#080b0e'; g.fillText('MINDMINER', 504, 89);
+    g.fillStyle = '#ffffff'; g.fillText('MINDMINER', 500, 82);
 });
 const icons = ['hint', 'help', 'sound', 'muted', 'back', 'close', 'random', 'clear', 'check', 'link', 'pause', 'mine', 'compass'];
 for (let i = 1; i <= 5; i++)
-    sprite(`depot-${i}`, 64, 64, g => { shape(g, 4, 4, 56, 56, '#111b25', '#7b8788', 6, 2); g.font = 'bold 34px Menlo, monospace'; g.fillStyle = '#eee3cf'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(String(i), 32, 34); });
+    sprite(`depot-${i}`, 64, 64, g => { shape(g, 4, 4, 56, 56, '#14181a', '#7b8788', 6, 2); g.font = 'bold 34px Menlo, monospace'; g.fillStyle = '#ffffff'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(String(i), 32, 34); });
 for (const name of icons)
     sprite(name, 64, 64, g => {
-        g.strokeStyle = '#eee3cf';
-        g.fillStyle = '#eee3cf';
+        g.strokeStyle = '#d9d8ce';
+        g.fillStyle = '#d9d8ce';
         g.lineWidth = 3;
         g.lineCap = 'round';
         g.lineJoin = 'round';
@@ -130,9 +170,9 @@ for (const name of icons)
         if (name === 'hint') {
             g.beginPath();
             g.arc(32, 32, 21, 0, Math.PI * 2);
-            g.fillStyle = '#aa7c3e';
+            g.fillStyle = '#556976';
             g.fill();
-            g.strokeStyle = '#e6ae55';
+            g.strokeStyle = '#b0c3cf';
             g.stroke();
             g.beginPath();
             g.arc(32, 32, 15, 0, Math.PI * 2);
@@ -141,7 +181,7 @@ for (const name of icons)
         else if (name === 'help') {
             g.font = 'bold 42px Menlo';
             g.textAlign = 'center';
-            g.fillText('?', 32, 47);
+            g.fillStyle = '#ffffff'; g.fillText('?', 32, 47);
         }
         else if (name === 'back') {
             l(42, 14, 22, 32);
@@ -226,10 +266,10 @@ for (const [name, color] of [['glow', '235,174,79'], ['dust', '168,182,187'], ['
     g.fillRect(0, 0, 128, 128);
     writeFileSync(path.join(fx, `${name}.png`), c.toBuffer('image/png'));
 }
-const overview = createCanvas(1600, 1050), o = overview.getContext('2d');
-o.fillStyle = '#0b1118';
-o.fillRect(0, 0, 1600, 1050);
-o.fillStyle = '#eee3cf';
+const overview = createCanvas(1600, 1450), o = overview.getContext('2d');
+o.fillStyle = '#080b0e';
+o.fillRect(0, 0, 1600, 1450);
+o.fillStyle = '#d9d8ce';
 o.font = 'bold 36px Menlo';
 o.fillText('MINDMINER / GAME ASSETS', 48, 64);
 let n = 0;
@@ -244,5 +284,50 @@ for (const [name, r] of Object.entries(manifest)) {
     n++;
 }
 writeFileSync(path.join(out, 'asset-sheet.png'), overview.toBuffer('image/png'));
-writeFileSync(path.join(root, 'public/game/manifest.json'), JSON.stringify({ title: 'Quiet Mine / original game asset kit', models: ['miner-cart', 'timber-arch', 'lantern', 'supply-crate', 'cave-rock'].map(n => `models/${n}.glb`), ui: 'ui/atlas.png', frames: 'ui/atlas.json', fx: ['fx/glow.png', 'fx/dust.png', 'fx/spark.png'], source: 'assets/source/quiet-mine-kit.blend', license: 'Original assets created for MindMiner; no third-party game artwork.' }, null, 2));
+writeFileSync(path.join(root, 'public/game/manifest.json'), JSON.stringify({ title: 'Quiet Mine / original game asset kit', models: ['miner-cart', 'timber-arch', 'lantern', 'supply-crate', 'cave-rock', 'mine-level', 'broken-track', 'main-menu-diorama'].map(n => `models/${n}.glb`), ui: 'ui/atlas.png', frames: 'ui/atlas.json', fx: ['fx/glow.png', 'fx/dust.png', 'fx/spark.png'], textures: ['shale', 'timber', 'iron', 'gravel', 'floor'].map(n => `textures/${n}.png`), levelLayout: 'lib/mine/level-layout.json', source: 'assets/source/quiet-mine-kit.blend', titleSource: 'assets/source/quiet-mine-title.blend', license: 'Original assets created for MindMiner; no third-party game artwork.' }, null, 2));
 console.log(`Built ${Object.keys(manifest).length} PNG UI sprites, atlas, effects, and asset sheet.`);
+// Quiet, illustrated material maps. Seeded strokes keep the low-poly silhouettes clean.
+const textureOut = path.join(root, 'public/game/textures');
+mkdirSync(textureOut, { recursive: true });
+let seed = 7001;
+const rand = () => { seed = seed * 16807 % 2147483647; return (seed - 1) / 2147483646; };
+for (const kind of ['shale', 'timber', 'iron', 'gravel']) {
+    const c = createCanvas(512, 512), g = c.getContext('2d');
+    g.fillStyle = { shale: '#20262b', timber: '#403a32', iron: '#4d565c', gravel: '#2a3034' }[kind]; g.fillRect(0, 0, 512, 512);
+    for (let i = 0; i < (kind === 'gravel' ? 2400 : 700); i++) {
+        const xx = rand() * 512, yy = rand() * 512;
+        g.strokeStyle = rand() > .5 ? '#d3d9cf18' : '#030b1740';
+        g.lineWidth = kind === 'timber' ? .6 + rand() * 2 : 1 + rand() * 3;
+        if (kind === 'gravel') { g.fillStyle = rand() > .5 ? '#a2a9a638' : '#080a0d55'; g.fillRect(xx, yy, 2 + rand() * 5, 2 + rand() * 4); }
+        else { g.beginPath(); g.moveTo(xx, yy); g.lineTo(xx + (kind === 'timber' ? rand() * 5 : 15 + rand() * 85), yy + (kind === 'timber' ? 50 + rand() * 230 : rand() * 12)); g.stroke(); }
+    }
+    if (kind === 'shale') for (let y = 0; y < 512; y += 54) {
+        g.strokeStyle = '#0b0e1266'; g.lineWidth = 3; g.beginPath(); g.moveTo(0, y); g.lineTo(150, y + 15); g.lineTo(345, y - 9); g.lineTo(512, y + 4); g.stroke();
+    }
+    writeFileSync(path.join(textureOut, `${kind}.png`), c.toBuffer('image/png'));
+}
+
+{
+    const c = createCanvas(1024, 1024), g = c.getContext('2d');
+    g.fillStyle = '#252b2f'; g.fillRect(0, 0, 1024, 1024);
+    for (let i = 0; i < 12000; i++) {
+        g.fillStyle = rand() > .52 ? '#b7c0c024' : '#05080b42';
+        g.fillRect(rand() * 1024, rand() * 1024, 1 + rand() * 6, 1 + rand() * 4);
+    }
+    for (let i = 0; i < 34; i++) {
+        let x = rand() * 1024, y = rand() * 1024;
+        g.beginPath(); g.moveTo(x,y);
+        for (let j = 0; j < 8; j++) { x += (rand() - .35) * 46; y += rand() * 35; g.lineTo(x,y); }
+        g.strokeStyle = '#080d1185'; g.lineWidth = 2 + rand() * 3; g.stroke();
+        g.strokeStyle = '#aab4b320'; g.lineWidth = 1; g.stroke();
+    }
+    for (let i = 0; i < 14; i++) {
+        const x = rand() * 1024, y = rand() * 1024, r = 60 + rand() * 110;
+        const soot = g.createRadialGradient(x,y,0,x,y,r); soot.addColorStop(0,'#070b1038'); soot.addColorStop(1,'#070b1000');
+        g.fillStyle = soot; g.fillRect(x-r,y-r,r*2,r*2);
+    }
+    writeFileSync(path.join(textureOut,'floor.png'),c.toBuffer('image/png'));
+}
+
+await import('./build_explosion_fx.mjs');
+await import('./build_game_guide.mjs');

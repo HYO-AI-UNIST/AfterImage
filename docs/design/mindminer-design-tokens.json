@@ -1,49 +1,148 @@
 {
   "name": "MindMiner / Quiet Mine",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "reference": "../concepts/mindminer-semi-retro-v4.png",
   "color": {
-    "canvas": "#0B1118",
-    "coal": "#101720",
-    "floor": "#1C2935",
-    "rock": "#15212C",
-    "rockFace": "#263A49",
-    "panel": "#141E28",
-    "panelRaised": "#21313D",
-    "outline": "#465764",
-    "ivory": "#EEE3CF",
-    "muted": "#A7B2B6",
-    "rail": "#9EA9AE",
-    "timber": "#60493D",
-    "amber": "#E6AE55",
-    "amberHover": "#F1C987",
-    "amberPressed": "#BD873D",
-    "privateTeal": "#84BBB8",
-    "danger": "#D58773",
-    "disabledText": "#82909A"
+    "canvas": "#050709",
+    "coal": "#0A0D10",
+    "floor": "#252B2F",
+    "rock": "#161B20",
+    "rockFace": "#20262B",
+    "panel": "#101315",
+    "panelRaised": "#1B2022",
+    "outline": "#555E61",
+    "ivory": "#D9D8CE",
+    "text": "#FFFFFF",
+    "textSecondary": "#99A3A8",
+    "muted": "#99A3A8",
+    "rail": "#AAB2B7",
+    "timber": "#403A32",
+    "amber": "#C3D6E2",
+    "amberHover": "#F0F7FA",
+    "amberPressed": "#7893A3",
+    "privateTeal": "#ABC1CE",
+    "danger": "#C28174",
+    "disabledText": "#82909A",
+    "primary": "#C3D6E2",
+    "primaryHover": "#F0F7FA",
+    "primaryPressed": "#7893A3",
+    "focus": "#D4E7F1"
   },
-  "playerColors": ["#C49853", "#719B8D", "#AB7163", "#6B8FA8", "#8E7D9E", "#B5A28B"],
+  "playerColors": [
+    "#AA9975",
+    "#798B84",
+    "#957C72",
+    "#7A8C96",
+    "#89828F",
+    "#A09986"
+  ],
   "type": {
-    "display": { "family": "Menlo, Monaco, Courier New, monospace", "weight": 700, "size": 48 },
-    "title": { "family": "Pretendard, Apple SD Gothic Neo, sans-serif", "weight": 700, "size": 28 },
-    "body": { "family": "Pretendard, Apple SD Gothic Neo, sans-serif", "weight": 500, "size": 16 },
-    "label": { "family": "Pretendard, Apple SD Gothic Neo, sans-serif", "weight": 500, "size": 12 },
-    "number": { "family": "Menlo, Monaco, Courier New, monospace", "weight": 700, "size": 24 }
+    "display": {
+      "family": "Menlo, Monaco, Courier New, monospace",
+      "weight": 700,
+      "size": 48
+    },
+    "title": {
+      "family": "Pretendard, Apple SD Gothic Neo, sans-serif",
+      "weight": 700,
+      "size": 28
+    },
+    "body": {
+      "family": "Pretendard, Apple SD Gothic Neo, sans-serif",
+      "weight": 500,
+      "size": 16
+    },
+    "label": {
+      "family": "Pretendard, Apple SD Gothic Neo, sans-serif",
+      "weight": 500,
+      "size": 12
+    },
+    "number": {
+      "family": "Menlo, Monaco, Courier New, monospace",
+      "weight": 700,
+      "size": 24
+    }
   },
-  "spacing": [4, 8, 12, 16, 24, 32, 48],
-  "stroke": { "detail": 1, "ui": 2, "silhouette": 3 },
-  "shape": { "chamfer": 6, "cornerRadius": 2, "materialTonesMax": 2 },
-  "interaction": { "desktopTarget": 40, "touchTarget": 48, "focusOutline": 2, "focusOffset": 3 },
-  "viewport": { "desktop": [960, 600], "mobile": [360, 680] },
-  "motionMs": { "hover": 100, "press": 80, "turnIntroProposed": 900, "safeMoveCurrent": 650, "explosionCurrent": 1800, "rotationCurrent": 1400 },
-  "world": { "camera": "orthographic top-down, subtle visible object thickness", "junctionRows": [1, 2, 3, 4, 5], "junctionCount": 15, "railEdges": 30, "baseDepots": 5, "goal": "exit lift", "textures": false, "persistentMovementTrails": false },
+  "spacing": [
+    4,
+    8,
+    12,
+    16,
+    24,
+    32,
+    48
+  ],
+  "stroke": {
+    "detail": 1,
+    "ui": 2,
+    "silhouette": 3
+  },
+  "shape": {
+    "chamfer": 6,
+    "cornerRadius": 2,
+    "materialTonesMax": 2
+  },
+  "interaction": {
+    "desktopTarget": 40,
+    "touchTarget": 48,
+    "focusOutline": 2,
+    "focusOffset": 3
+  },
+  "viewport": {
+    "desktop": [
+      960,
+      600
+    ],
+    "mobile": [
+      360,
+      680
+    ]
+  },
+  "motionMs": {
+    "hover": 100,
+    "press": 80,
+    "turnIntroProposed": 900,
+    "safeMoveCurrent": 650,
+    "explosionCurrent": 1800,
+    "rotationCurrent": 1400,
+    "stageSpotlight": 850,
+    "boardFlight": 2100,
+    "boardShuffle": 2800
+  },
+  "world": {
+    "camera": "automatic orthographic; carousel board flight and directed explosion shot",
+    "junctionRows": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "junctionCount": 15,
+    "railEdges": 30,
+    "baseDepots": 5,
+    "goal": "exit lift",
+    "textures": true,
+    "persistentMovementTrails": false,
+    "layout": "../../lib/mine/level-layout.json",
+    "triangleSilhouette": "equilateral, fixed base; interior offsets under 0.1 units",
+    "lighting": "strong cool spotlight during own mine placement; faint stage and side spotlights during exploration, cart light and luminous movement arrows"
+  },
   "semantics": {
-    "turnAndPrimary": "amber + frame or turn label",
-    "availableDestination": "ivory ring + small center marker",
-    "privateHint": "teal + private label",
-    "placementMine": "danger + cross; placement owner only",
-    "explosion": "danger + burst; temporary public event",
+    "text": "white for primary and highlighted text; muted gray for supporting and disabled text; dark text on bright buttons; danger color reserved for warnings",
+    "turnAndPrimary": "bright ice steel asset + spotlight cue",
+    "availableDestination": "pulsing luminous direction arrow + landing ring",
+    "privateHint": "cool gray-blue + private label",
+    "placementMine": "upward torn rail + red ember particles; placement owner only",
+    "explosion": "temporary torn rail, sparks, shock wave and camera push-in",
     "neutralRail": "same rail appearance regardless of hidden mine status",
-    "disabled": "muted label + inactive frame; keep explanatory text readable"
+    "disabled": "low-contrast inactive asset with muted readable text"
+  },
+  "implementation": "../game/design-update-02.md",
+  "legacyColorAliases": {
+    "amber": "primary",
+    "amberHover": "primaryHover",
+    "amberPressed": "primaryPressed",
+    "privateTeal": "privateHint"
   }
 }

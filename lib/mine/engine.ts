@@ -3,12 +3,13 @@ import { MineWorld } from './world';
 import { MineSession } from './session';
 import { MineAudio } from './audio';
 import { randomBoard } from '../game';
+import { GUIDE_PAGES, guidePage } from './guide';
 export class MineGame {
     private session = new MineSession();
     private hud = new MineHud();
     private world: MineWorld;
     private audio = new MineAudio();
-    private model: HudModel = { session: this.session, draft: [], hintMode: false, overlay: null, entry: 'create', name: '', code: '', field: null, hint: null, toast: '', loading: true, hover: null, focus: null, muted: false, turnAt: 0 };
+    private model: HudModel = { session: this.session, draft: [], hintMode: false, overlay: null, entry: 'create', name: '', code: '', field: null, hint: null, toast: '', loading: true, hover: null, focus: null, muted: false, turnAt: 0, resultAt: 0, pressed: null, routes: [], cinematic: null, guidePage: 0, guideScroll: 0 };
     private raf = 0;
     private lastHud = 0;
     private lastGeometry = 0;
@@ -17,18 +18,20 @@ export class MineGame {
     private lastPhase = '';
     private viewKey = '';
     private dirty = true;
+    private inCinematic = false;
     private disposed = false;
     private toastTimer: ReturnType<typeof setTimeout> | null = null;
     private pointers = new Map<number, {
         x: number;
         y: number;
     }>();
-    private down = { x: 0, y: 0 };
+    private down = { x: 0, y: 0, guideScroll: 0 };
     private dragging = false;
     private resizeObserver: ResizeObserver;
     private abort = new AbortController();
     constructor(private canvas: HTMLCanvasElement, private input: HTMLInputElement) {
         this.world = new MineWorld(canvas, this.hud.texture);
+        this.session.presentationBusy = () => this.world.inputLocked || this.model.overlay === 'help';
         this.session.onChange = () => this.sync();
         const options = { signal: this.abort.signal };
         canvas.addEventListener('pointerdown', this.pointerDown, options);
@@ -36,10 +39,13 @@ export class MineGame {
         canvas.addEventListener('pointerup', this.pointerUp, options);
         canvas.addEventListener('pointercancel', this.pointerCancel, options);
         canvas.addEventListener('wheel', this.wheel, { ...options, passive: false });
+        canvas.addEventListener('pointerleave', () => { this.model.hover = null; this.model.pressed = null; this.world.hoverAt(null); this.dirty = true; }, options);
         window.addEventListener('keydown', this.key, options);
         input.addEventListener('input', this.inputChanged, options);
         input.addEventListener('blur', () => { this.model.field = null; this.dirty = true; }, options);
         document.fonts.addEventListener('loadingdone', () => this.dirty = true, options);
+        window.addEventListener('resize', this.resize, options);
+        window.visualViewport?.addEventListener('resize', this.resize, options);
         this.resizeObserver = new ResizeObserver(this.resize);
         this.resizeObserver.observe(canvas);
         this.resize();
@@ -65,7 +71,13 @@ export class MineGame {
         }).catch(e => { if (this.disposed)
             return; this.model.loading = false; this.session.error = e instanceof Error ? e.message : '게임 에셋을 불러오지 못했습니다.'; this.dirty = true; console.error(e); });
     }
-    private resize = () => { const r = this.canvas.getBoundingClientRect(); this.world.resize(Math.max(1, r.width), Math.max(1, r.height)); this.hud.resize(Math.max(1, r.width), Math.max(1, r.height)); this.dirty = true; };
+    private resize = () => {
+        const r = (this.canvas.parentElement ?? this.canvas).getBoundingClientRect();
+        const w = Math.max(1, r.width), h = Math.max(1, Math.min(r.height, window.visualViewport?.height ?? r.height));
+        if (Math.abs(this.canvas.getBoundingClientRect().height - h) > .5) this.canvas.style.height = `${h}px`;
+        this.world.resize(w, h); this.hud.resize(w, h);
+        this.lastHud = 0; this.lastGeometry = 0; this.dirty = true;
+    };
     private sync() {
         if (this.disposed)
             return;
@@ -81,6 +93,8 @@ export class MineGame {
             this.lastTurn = turn;
         }
         if (phase !== this.lastPhase) {
+            this.model.focus = null;
+            this.model.pressed = null;
             if (phase !== 'playing') this.lastEvent = '';
             if (phase === 'placing')
                 this.model.draft = v?.ownMines ?? [];
@@ -89,6 +103,7 @@ export class MineGame {
                 this.model.hintMode = false;
             }
             if (phase === 'roundEnd' || phase === 'finished') {
+                this.model.resultAt = performance.now();
                 this.audio.play('win');
                 this.model.overlay = null;
             }
@@ -110,22 +125,31 @@ export class MineGame {
         this.canvas.dataset.phase = phase;
         this.canvas.dataset.position = v?.position ?? '';
         this.canvas.dataset.round = String(v?.round ?? 0);
+        this.canvas.dataset.revision = String(v?.revision ?? 0);
         this.canvas.setAttribute('aria-label', `MindMiner 3D 게임. ${phase === 'home' ? '홈 메뉴' : phase === 'placing' ? '선로에 지뢰 배치' : phase === 'playing' ? this.session.ownTurn ? '내 차례. 화살표로 이동 대상을 고르고 Enter로 이동. H로 힌트 사용.' : '다른 광부 탐색 중' : '게임 결과'}. Tab으로 메뉴 선택, Escape로 메뉴.`);
     }
     private updateWorld() { this.world.setState(this.session.view, this.model.draft, this.model.hintMode, this.model.hint?.edgeId ?? null); }
     private frame = (time: number) => {
         if (this.disposed)
             return;
-        const animated = time - this.model.turnAt < 1600 && this.session.ownTurn;
-        if (this.dirty || animated && time - this.lastHud > 45 || time - this.lastHud > 1000) {
+        this.world.frame(time, false);
+        this.model.cinematic = this.world.cinematic;
+        this.model.routes = this.world.routes();
+        if (this.inCinematic && !this.model.cinematic) { this.model.turnAt = time; this.dirty = true; }
+        this.inCinematic = !!this.model.cinematic;
+        const animated = !this.model.overlay && (!!this.model.cinematic || (this.session.view?.phase === 'roundEnd' || this.session.view?.phase === 'finished') && time - this.model.resultAt < 3800 || this.model.routes.length > 0 || time - this.model.turnAt < 1600 && this.session.ownTurn);
+        if (this.dirty || animated && time - this.lastHud > 40 || time - this.lastHud > 1000) {
             this.hud.draw(this.model, time);
             this.lastHud = time;
             this.dirty = false;
             this.canvas.dataset.controls = JSON.stringify(this.hud.regions.filter(r => !r.disabled).map(({ id, x, y, w, h }) => ({ id, x, y, w, h })));
             this.canvas.dataset.overlay = this.model.overlay ?? '';
+            this.canvas.dataset.guidePage = this.model.overlay === 'help' ? String(this.model.guidePage) : '';
+            this.canvas.dataset.guideScroll = this.model.overlay === 'help' ? String(Math.min(this.hud.guideScrollMax, this.model.guideScroll)) : '';
             this.canvas.dataset.event = this.session.view?.event?.type ?? '';
+            this.canvas.dataset.cinematic = this.model.cinematic?.kind ?? '';
         }
-        this.world.frame(time);
+        this.world.render();
         if (time - this.lastGeometry > 100) {
             this.canvas.dataset.nodes = JSON.stringify(Object.fromEntries(this.world.projected));
             this.canvas.dataset.inputMode = this.model.hintMode ? 'hint' : this.session.view?.phase === 'placing' ? 'placement' : 'movement';
@@ -141,6 +165,7 @@ export class MineGame {
             return;
         void this.audio.unlock();
         this.audio.play('click');
+        if (id.startsWith('route:')) { await this.worldAction(id.slice(6)); return; }
         if (id.startsWith('field:')) {
             this.model.field = id.slice(6);
             this.input.value = this.model.field === 'name' ? this.model.name : this.model.code;
@@ -164,8 +189,17 @@ export class MineGame {
         }
         else if (id === 'resume')
             this.session.resume();
-        else if (id === 'help')
+        else if (id === 'help') {
+            this.model.guidePage = this.session.view?.phase === 'placing' ? 1 : this.model.hintMode ? 4 : this.session.view?.phase === 'playing' ? 2 : this.session.view?.winner ? 6 : 0;
+            this.model.focus = null;
+            this.model.guideScroll = 0;
             this.model.overlay = 'help';
+        }
+        else if (this.model.overlay === 'help' && (id.startsWith('guide:') || id === 'guide-prev' || id === 'guide-next')) {
+            this.model.guidePage = guidePage(id.startsWith('guide:') ? Number(id.slice(6)) : this.model.guidePage + (id === 'guide-prev' ? -1 : 1));
+            this.model.guideScroll = 0;
+            this.model.focus = null;
+        }
         else if (id === 'pause')
             this.model.overlay = 'pause';
         else if (id === 'assets')
@@ -240,41 +274,39 @@ export class MineGame {
         this.model.code = this.input.value.replace(/[^a-z0-9]/gi, '').toUpperCase().slice(0, 6);
         this.input.value = this.model.code;
     } this.dirty = true; };
-    private pointerDown = (e: PointerEvent) => { if (this.model.loading)
-        return; void this.audio.unlock(); this.canvas.focus({ preventScroll: true }); this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY }); this.down = { x: e.clientX, y: e.clientY }; this.dragging = false; this.canvas.setPointerCapture(e.pointerId); };
+    private pointerDown = (e: PointerEvent) => {
+        if (this.model.loading) return;
+        void this.audio.unlock(); this.canvas.focus({ preventScroll: true });
+        this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        this.down = { x: e.clientX, y: e.clientY, guideScroll: this.model.guideScroll }; this.dragging = false;
+        const r = this.canvas.getBoundingClientRect(), hit = this.hud.hit(e.clientX - r.left, e.clientY - r.top);
+        this.model.pressed = hit && !hit.disabled ? hit.id : null; this.dirty = true;
+        this.canvas.setPointerCapture(e.pointerId);
+    };
     private pointerMove = (e: PointerEvent) => {
         const r = this.canvas.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
-        this.world.pointer(x, y);
-        const prev = this.pointers.get(e.pointerId);
-        if (prev) {
-            if (this.pointers.size === 2) {
-                const other = [...this.pointers].find(([id]) => id !== e.pointerId)?.[1];
-                if (other) {
-                    const before = Math.hypot(prev.x - other.x, prev.y - other.y), after = Math.hypot(e.clientX - other.x, e.clientY - other.y);
-                    if (after > 1)
-                        this.world.dolly(before / after);
-                }
-                this.dragging = true;
-            }
-            else if (!this.model.overlay && !this.hud.hit(this.down.x - r.left, this.down.y - r.top) && Math.hypot(e.clientX - this.down.x, e.clientY - this.down.y) > 7) {
-                this.dragging = true;
-                this.world.orbit((e.clientX - prev.x) * .002);
-            }
-            this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        if (this.pointers.has(e.pointerId) && Math.hypot(e.clientX - this.down.x, e.clientY - this.down.y) > 9) {
+            this.dragging = true; this.model.pressed = null; this.dirty = true;
+            if (this.model.overlay === 'help' && Math.abs(e.clientY - this.down.y) > Math.abs(e.clientX - this.down.x) * 1.4)
+                this.scrollGuide(this.down.guideScroll + this.down.y - e.clientY);
         }
         const hit = this.hud.hit(x, y), hover = hit && !hit.disabled ? hit.id : null;
-        if (hover !== this.model.hover) {
-            this.model.hover = hover;
-            this.dirty = true;
-        }
+        if (hover !== this.model.hover) { this.model.hover = hover; this.dirty = true; }
         const target = !this.model.overlay && !this.session.blocked ? this.world.pick(x, y, this.session.view?.phase === 'placing' || this.model.hintMode) : null;
-        this.world.hoverAt(target);
-        this.canvas.style.cursor = hover || target ? 'pointer' : this.dragging ? 'grabbing' : 'default';
+        this.world.hoverAt(hover?.startsWith('route:') ? hover.slice(6) : target);
+        this.canvas.style.cursor = hover || target ? 'pointer' : 'default';
     };
     private pointerUp = (e: PointerEvent) => {
+        this.model.pressed = null; this.dirty = true;
         this.pointers.delete(e.pointerId);
         if (this.canvas.hasPointerCapture(e.pointerId))
             this.canvas.releasePointerCapture(e.pointerId);
+        if (this.model.overlay === 'help' && e.pointerType === 'touch') {
+            const dx = e.clientX - this.down.x, dy = e.clientY - this.down.y;
+            if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+                void this.run(dx < 0 ? 'guide-next' : 'guide-prev'); return;
+            }
+        }
         if (this.dragging || this.model.loading)
             return;
         const r = this.canvas.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top, hit = this.hud.hit(x, y);
@@ -290,14 +322,16 @@ export class MineGame {
         if (target)
             void this.worldAction(target);
     };
-    private pointerCancel = (e: PointerEvent) => { this.pointers.delete(e.pointerId); this.dragging = true; };
-    private wheel = (e: WheelEvent) => { if (!this.model.overlay) {
+    private pointerCancel = (e: PointerEvent) => { this.pointers.delete(e.pointerId); this.dragging = true; this.model.pressed = null; this.dirty = true; };
+    private scrollGuide(value: number) { this.model.guideScroll = Math.max(0, Math.min(this.hud.guideScrollMax, value)); this.dirty = true; }
+    private wheel = (e: WheelEvent) => {
+        if (this.model.overlay !== 'help') return;
         e.preventDefault();
-        this.world.dolly(Math.exp(e.deltaY * .0005));
-    } };
+        this.scrollGuide(this.model.guideScroll + e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? this.hud.height : 1));
+    };
     private async worldAction(target: string) {
         const v = this.session.view;
-        if (!v || this.session.blocked || this.model.overlay)
+        if (!v || this.session.blocked || this.model.overlay || this.world.inputLocked)
             return;
         if (v.phase === 'placing' && !this.session.self?.ready) {
             this.model.draft = this.model.draft.includes(target) ? this.model.draft.filter(id => id !== target) : [...this.model.draft, target];
@@ -330,6 +364,17 @@ export class MineGame {
             if (e.key === 'Escape')
                 this.input.blur();
             return;
+        }
+        if (e.key === 'F1' && (!this.model.overlay || this.model.overlay === 'pause')) {
+            e.preventDefault(); void this.run('help'); return;
+        }
+        if (this.model.overlay === 'help' && ['ArrowRight', 'ArrowLeft', 'PageDown', 'PageUp', 'Home', 'End'].includes(e.key)) {
+            e.preventDefault();
+            const page = e.key === 'Home' ? 0 : e.key === 'End' ? GUIDE_PAGES.length - 1 : this.model.guidePage + (e.key === 'ArrowLeft' || e.key === 'PageUp' ? -1 : 1);
+            void this.run(`guide:${guidePage(page)}`); return;
+        }
+        if (this.model.overlay === 'help' && ['ArrowDown', 'ArrowUp'].includes(e.key)) {
+            e.preventDefault(); this.scrollGuide(this.model.guideScroll + (e.key === 'ArrowDown' ? 50 : -50)); return;
         }
         if (e.key === 'Tab') {
             e.preventDefault();
@@ -369,8 +414,8 @@ export class MineGame {
             void this.run('sound');
         if (e.key.toLowerCase() === 'c')
             this.world.resetCamera();
-        const available = this.world.available();
-        if (/^[1-5]$/.test(e.key) && available.includes(`4-${Number(e.key) - 1}`))
+        const available = this.world.keyboardTargets();
+        if (!this.model.hintMode && /^[1-5]$/.test(e.key) && available.includes(`4-${Number(e.key) - 1}`))
             void this.worldAction(`4-${Number(e.key) - 1}`);
         if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
             e.preventDefault();

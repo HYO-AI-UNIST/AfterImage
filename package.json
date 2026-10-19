@@ -19,7 +19,8 @@
     "test": "node --test --test-isolation=none tests/*.test.ts",
     "typecheck": "tsc --noEmit",
     "db:local": "node scripts/game-db.mjs",
-    "test:browser": "node tests/game-canvas.mjs"
+    "test:browser": "node tests/game-canvas.mjs",
+    "assets:fx": "node scripts/design/build_explosion_fx.mjs"
   },
   "dependencies": {
     "three": "0.180.0",

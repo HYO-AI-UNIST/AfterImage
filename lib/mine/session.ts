@@ -15,6 +15,7 @@ export class MineSession {
     connection = '';
     saved: Membership | null = null;
     onChange = () => { };
+    presentationBusy = () => false;
     private state: GameState | null = null;
     private member: Membership | null = null;
     private generation = 0;
@@ -55,6 +56,7 @@ export class MineSession {
         this.timer = setTimeout(() => {
             if (!this.demo || !this.state || this.disposed)
                 return;
+            if (this.presentationBusy()) { this.tick(); return; }
             this.state = tickDemo(this.state, Date.now());
             if (this.state.revision !== this.view?.revision)
                 this.accept(viewFor(this.state, DEMO_SELF_ID));

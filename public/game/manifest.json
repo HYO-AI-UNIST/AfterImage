@@ -5,15 +5,31 @@
     "models/timber-arch.glb",
     "models/lantern.glb",
     "models/supply-crate.glb",
-    "models/cave-rock.glb"
+    "models/cave-rock.glb",
+    "models/mine-level.glb",
+    "models/broken-track.glb",
+    "models/main-menu-diorama.glb"
   ],
   "ui": "ui/atlas.png",
   "frames": "ui/atlas.json",
   "fx": [
     "fx/glow.png",
     "fx/dust.png",
-    "fx/spark.png"
+    "fx/spark.png",
+    "fx/blast-puff.png",
+    "fx/smoke.png",
+    "fx/ember-streak.png"
   ],
+  "textures": [
+    "textures/shale.png",
+    "textures/timber.png",
+    "textures/iron.png",
+    "textures/gravel.png",
+    "textures/floor.png"
+  ],
+  "levelLayout": "lib/mine/level-layout.json",
   "source": "assets/source/quiet-mine-kit.blend",
-  "license": "Original assets created for MindMiner; no third-party game artwork."
+  "titleSource": "assets/source/quiet-mine-title.blend",
+  "license": "Original assets created for MindMiner; no third-party game artwork.",
+  "guide": "guide/manifest.json"
 }

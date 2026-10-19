@@ -1,0 +1,10 @@
+{
+  "overview": "guide/overview.png",
+  "placement": "guide/placement.png",
+  "movement": "guide/movement.png",
+  "memory": "guide/memory.png",
+  "hint": "guide/hint.png",
+  "turns": "guide/turns.png",
+  "scoring": "guide/scoring.png",
+  "controls": "guide/controls.png"
+}

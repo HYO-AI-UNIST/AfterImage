@@ -62,8 +62,8 @@ try {
     await page.mouse.move(710, 365, { steps: 8 });
     await page.mouse.up();
     await page.waitForTimeout(900);
-    await shot(page, 'camera-orbit');
-    console.log('PASS demo: image-only UI, placement, hint, spawn, orbit.');
+    await shot(page, 'automatic-camera');
+    console.log('PASS demo: image-only UI, placement, hint and spawn.');
     await page.context().close();
     const mobile = await open({ width: 390, height: 844 }, true);
     await mobile.waitForTimeout(1500);
