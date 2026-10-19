@@ -1,0 +1,21 @@
+.owned {
+  --owner-color: var(--player-color-light);
+  --board-line: var(--owner-color);
+  --board-fill: color-mix(in srgb, var(--owner-color) 7%, var(--panel));
+  --board-halo: color-mix(in srgb, var(--owner-color) 13%, var(--panel));
+  --board-halo-hover: color-mix(in srgb, var(--owner-color) 22%, var(--panel));
+  --board-halo-border: color-mix(in srgb, var(--owner-color) 65%, var(--panel));
+}
+
+:global(:root[data-theme='dark']) .owned {
+  --owner-color: var(--player-color-dark);
+}
+
+.owned :global(.board-surface) {
+  stroke: var(--owner-color);
+  stroke-width: 1;
+}
+
+.owned :global(.node-start) {
+  fill: var(--owner-color);
+}

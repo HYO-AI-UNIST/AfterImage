@@ -1,0 +1,83 @@
+.modal.modal { width: min(940px, calc(100% - 40px)); padding: 28px 30px 23px; }
+.gallery { margin-top: 8px; }
+.intro { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 20px; }
+.intro > p { color: var(--muted); font-size: 14px; }
+.counter { flex-shrink: 0; font-family: var(--font-mono); color: var(--foreground); font-size: 14px; }
+.counter > span { color: var(--muted); font-size: 11px; }
+.prologue { margin: 0 0 18px; padding: 12px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.prologue summary { color: var(--foreground); cursor: pointer; font-size: 13px; }
+.prologue summary > span { margin-left: 12px; color: var(--muted); font-size: 11px; }
+.prologue > p { max-width: 72ch; margin-top: 12px; color: var(--muted); font-size: 14px; line-height: 1.9; word-break: keep-all; overflow-wrap: anywhere; }
+.viewport { overflow: hidden; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); touch-action: pan-y pinch-zoom; }
+.track { display: flex; align-items: stretch; transition: transform 280ms cubic-bezier(.22,.61,.36,1); }
+.slide { display: grid; grid-template-columns: minmax(0, .65fr) minmax(0, 1.35fr); flex: 0 0 100%; min-width: 0; min-height: 385px; }
+.figure { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; padding: 24px 23px 30px 0; margin: 24px 0; border-right: 1px solid var(--line); }
+.emblem { width: min(100%, 210px); height: auto; color: var(--foreground); }
+.emblemGuide { stroke: var(--line); }
+.emblemPaper { fill: var(--panel); }
+.emblemAccent { stroke: var(--accent); }
+.measure { width: 100%; text-align: center; }
+.measure > span { display: block; color: var(--muted); font-size: 12px; }
+.measure > strong { display: block; margin-top: 4px; color: var(--accent); font-size: 24px; font-weight: 550; letter-spacing: -.8px; line-height: 1.5; }
+.measure > p { max-width: 195px; margin: 5px auto 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.approach { width: 100%; max-width: 215px; margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; line-height: 1.8; word-break: keep-all; overflow-wrap: anywhere; }
+.detail { min-width: 0; display: flex; flex-direction: column; justify-content: center; padding: 35px 0 35px 30px; }
+.subtitle { color: var(--muted); font-size: 12px; }
+.detail > h3 { margin-top: 9px; font-size: 28px; font-weight: 600; letter-spacing: -1px; line-height: 1.35; }
+.story { margin-top: 19px; font-size: 15px; line-height: 1.95; word-break: keep-all; overflow-wrap: anywhere; }
+.story p + p { margin-top: 13px; }
+.effect { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--line); }
+.effect > h4 { font-size: 12px; font-weight: 550; color: var(--accent); }
+.description { margin-top: 8px; font-size: 14px; line-height: 1.8; word-break: keep-all; overflow-wrap: anywhere; }
+.rules { padding: 0; margin: 12px 0 0; list-style: none; }
+.rules > li { position: relative; padding-left: 11px; color: var(--muted); font-size: 13px; line-height: 1.8; }
+.rules > li + li { margin-top: 8px; }
+.rules > li::before { content: ''; position: absolute; top: .82em; left: 0; width: 3px; height: 3px; background: var(--accent); }
+.navigation { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 12px; }
+.arrow { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; min-width: 74px; padding: 8px 5px; background: transparent; color: var(--foreground); font-size: 13px; }
+.arrow:hover { color: var(--accent); }
+.dots { display: flex; align-items: center; justify-content: center; }
+.dots > button { width: 27px; min-height: 44px; display: flex; align-items: center; justify-content: center; padding: 0; background: transparent; }
+.dots > button > span { width: 5px; height: 5px; border: 1px solid var(--muted); border-radius: 50%; transition: width .15s, background .15s; }
+.dots > button:hover > span { background: var(--muted); }
+.dots > button[aria-pressed='true'] > span { width: 17px; border-radius: 2px; border-color: var(--accent); background: var(--accent); }
+.help { margin-top: 4px; color: var(--muted); font-size: 11px; text-align: center; }
+.srOnly { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+@media (max-width: 620px) {
+  .modal.modal { width: calc(100% - 28px); max-height: calc(100dvh - 28px); padding: 20px 20px 18px; }
+  .intro { gap: 10px; padding-bottom: 14px; }
+  .intro > p { font-size: 12px; }
+  .slide { grid-template-columns: 1fr; grid-template-rows: auto 1fr; min-height: 0; }
+  .figure { display: grid; grid-template-columns: 104px minmax(0, 1fr); gap: 12px 18px; padding: 15px 0; margin: 0; border-right: 0; border-bottom: 1px solid var(--line); }
+  .emblem { width: 104px; }
+  .measure { min-width: 0; text-align: left; }
+  .measure > strong { font-size: 21px; }
+  .measure > span, .measure > p { font-size: 11px; }
+  .measure > p { margin: 4px 0 0; max-width: 170px; }
+  .approach { grid-column: 1 / -1; max-width: none; margin-top: 0; padding-top: 0; border: 0; font-size: 12px; }
+  .detail { justify-content: flex-start; padding: 22px 0 25px; }
+  .detail > h3 { margin-top: 5px; font-size: 25px; }
+  .story { font-size: 14px; line-height: 1.9; margin-top: 17px; }
+  .effect { margin-top: 20px; padding-top: 16px; }
+  .description { font-size: 14px; line-height: 1.8; }
+  .rules { margin-top: 12px; padding-top: 0; }
+  .rules > li { font-size: 12px; }
+  .navigation { gap: 3px; padding-top: 9px; }
+  .arrow { min-width: 56px; gap: 4px; font-size: 12px; }
+  .dots > button { width: 24px; }
+  .help { font-size: 10px; }
+}
+
+@media (max-width: 360px) {
+  .modal.modal { padding-right: 15px; padding-left: 15px; }
+  .emblem { width: 87px; }
+  .figure { grid-template-columns: 87px minmax(0, 1fr); gap: 12px; }
+  .measure > strong { font-size: 19px; }
+  .detail > h3 { font-size: 23px; }
+  .arrow { min-width: 48px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .track, .dots > button > span { transition: none; }
+}

@@ -1,0 +1,93 @@
+.example { min-width: 0; width: 100%; }
+.heading { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding-bottom: 15px; border-bottom: 1px solid var(--line); }
+.heading h2 { font-size: 13px; font-weight: 600; }
+.heading p { margin-top: 3px; color: var(--muted); font-size: 10px; }
+.heading > span { color: var(--muted); font-size: 10px; white-space: nowrap; }
+.tableMeta { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 15px; }
+.tableMeta > div { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 10px; }
+.tableMeta strong { font-size: 12px; font-weight: 550; }
+.tableMeta div > span, .tableMeta > p { color: var(--muted); font-size: 10px; }
+.tableMeta > p { display: flex; gap: 5px; align-items: baseline; flex-shrink: 0; }
+.tableMeta b { color: var(--foreground); font-family: var(--font-mono); font-size: 17px; font-weight: 500; }
+.stage { position: relative; padding: 0 8px; }
+.board { width: 100%; }
+.stage :global(.game-board) { max-height: 358px; width: 100%; height: auto; margin: 0 auto; }
+.rotating { animation: deal .6s ease both; }
+.hint, .result { position: absolute; right: 5%; top: 29%; max-width: 58%; padding: 10px 12px; border: 1px solid var(--gold-border); background: var(--panel); color: var(--gold-ink); }
+.hint > span, .result > span { display: block; font-size: 10px; color: var(--muted); }
+.hint > strong { display: block; margin-top: 3px; font-size: 12px; font-weight: 550; }
+.result { top: 39%; border-color: var(--accent-border); color: var(--accent); }
+.result > strong { display: block; margin-top: 3px; font-family: var(--font-mono); font-size: 20px; font-weight: 500; letter-spacing: -.7px; }
+.result dl { display: grid; gap: 3px; margin-top: 8px; color: var(--foreground); font-size: 12px; }
+.result dl > div { display: flex; align-items: baseline; justify-content: space-between; gap: 18px; }
+.result dt { color: var(--muted); }
+.result dd { font-variant-numeric: tabular-nums; }
+.boardFoot { min-height: 47px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0 12px; }
+.boardFoot > p { color: var(--muted); font-size: 10px; line-height: 1.6; }
+.coins { display: flex; align-items: center; gap: 4px; flex-shrink: 0; color: var(--muted); font-size: 10px; }
+.coins > span { margin-right: 2px; }
+.coins i { display: block; width: 8px; height: 8px; border: 1px solid var(--gold); border-radius: 50%; background: var(--gold); }
+.coins i[data-spent='true'] { border-color: var(--spent); background: transparent; }
+.coins b { margin-left: 3px; font-family: var(--font-mono); font-size: 11px; font-weight: 500; color: var(--foreground); }
+.steps { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.steps button { min-width: 0; min-height: 48px; display: flex; align-items: center; justify-content: center; gap: 5px; margin-bottom: -1px; padding: 10px 3px; border-bottom: 2px solid transparent; background: transparent; color: var(--muted); font-size: 11px; }
+.steps button > span { font-family: var(--font-mono); font-size: 9px; }
+.steps button:hover { background: var(--surface-muted); color: var(--foreground); }
+.steps button[aria-current='step'] { border-bottom-color: var(--accent); color: var(--accent); font-weight: 600; }
+.explanation { min-height: 99px; padding: 16px 0 13px; }
+.explanation h3 { font-size: 14px; font-weight: 550; letter-spacing: -.3px; }
+.explanation p { margin-top: 5px; color: var(--muted); font-size: 11px; line-height: 1.8; }
+.controls { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; }
+.controls button { min-height: 36px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 8px 4px; background: transparent; color: var(--muted); font-size: 11px; }
+.controls button:hover:not(:disabled) { color: var(--foreground); }
+.mainActions { display: flex; align-items: stretch; justify-content: center; gap: 8px; grid-column: 2; grid-row: 1; }
+.controls .play, .controls .abilities { padding: 8px 13px; border: 1px solid var(--input-border); border-radius: 2px; color: var(--foreground); white-space: nowrap; }
+.controls .play { min-width: 115px; }
+.controls .play:hover, .controls .abilities:hover { border-color: var(--accent); background: var(--surface-hover); }
+.previous { grid-column: 1; grid-row: 1; justify-self: start; }
+.next { grid-column: 3; grid-row: 1; justify-self: end; }
+.example[data-playing='false'] :global(.is-moving), .example[data-playing='false'] :global(.explosion), .example[data-playing='false'] .rotating { animation-play-state: paused; }
+.example[data-started='false'] :global(.is-moving), .example[data-started='false'] :global(.explosion), .example[data-started='false'] .rotating { animation: none; }
+@keyframes deal { from { opacity: .2; transform: translateX(18px); } to { opacity: 1; transform: translateX(0); } }
+@media (min-width: 801px) {
+  .heading h2 { font-size: 18px; }
+  .heading p, .heading > span { font-size: 13px; }
+  .tableMeta strong { font-size: 15px; }
+  .tableMeta div > span, .tableMeta > p { font-size: 13px; }
+  .tableMeta b { font-size: 21px; }
+  .stage :global(.board-label) { font-size: 22px; }
+  .hint > span, .result > span { font-size: 12px; }
+  .hint > strong { font-size: 15px; }
+  .result > strong { font-size: 24px; }
+  .result dl { font-size: 14px; }
+  .boardFoot { min-height: 58px; gap: 14px; }
+  .boardFoot > p { font-size: 13px; line-height: 1.75; }
+  .coins { font-size: 13px; gap: 5px; }
+  .coins i { width: 10px; height: 10px; }
+  .coins b { font-size: 14px; }
+  .steps button { min-height: 52px; font-size: 14px; }
+  .steps button > span { font-size: 11px; }
+  .explanation { min-height: 124px; padding-top: 18px; }
+  .explanation h3 { font-size: 18px; }
+  .explanation p { font-size: 15px; line-height: 1.75; }
+  .controls button { min-height: 42px; font-size: 14px; }
+  .controls .play { min-width: 138px; }
+}
+@media (max-width: 560px) {
+  .stage { padding: 0; }
+  .steps button { flex-direction: column; gap: 0; padding: 6px 2px; font-size: 10px; }
+  .steps button > span { font-size: 9px; }
+  .boardFoot { min-height: 57px; }
+  .explanation { min-height: 103px; }
+  .hint, .result { right: 0; padding: 7px 9px; }
+  .hint > strong { font-size: 11px; }
+  .result > strong { font-size: 17px; }
+  .controls { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .mainActions { grid-column: 1 / -1; grid-row: 1; }
+  .mainActions > button { flex: 1; }
+  .previous { grid-column: 1; grid-row: 2; }
+  .next { grid-column: 2; grid-row: 2; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .example *, .example :global(.is-moving), .example :global(.explosion) { animation: none !important; transition: none !important; }
+}
